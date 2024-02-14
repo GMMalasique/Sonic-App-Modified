@@ -3,7 +3,7 @@ import streamlit as st
 
 def app():   
     
-        
+    st.divider()    
     st.title('''Sonic Log Interpretation: Porosity Calculation''')
     st.markdown('''
                 Welcome to our Sonic Log Interpretation web application!

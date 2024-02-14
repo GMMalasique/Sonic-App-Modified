@@ -3,6 +3,7 @@ from PIL import Image
 
 def app():    
     
+    st.divider()
     st.subheader('Porosity Calculation and Evaluation')
     
     

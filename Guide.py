@@ -3,70 +3,121 @@ from PIL import Image
     
     
 def app():    
-    
-    
-    st.subheader("How to Use the Web Application")
+
+    st.divider()
+    img = {
+        '1': Image.open('Guide_1.png'),
+        '2': Image.open('Guide_2.png'),
+        '3': Image.open('Guide_3.png'),
+        '4': Image.open('Guide_4.png'),
+        '5': Image.open('Guide_5.png'),
+        '6': Image.open('Guide_6.png'),
+        '7': Image.open('Guide_7.png'),
+        '8': Image.open('Guide_8.png'),
+        '9': Image.open('Guide_9.png'),
+        '10': Image.open('Guide_10.png'),
+        '11': Image.open('Guide_11.png'),
         
-    img_manual_1 = Image.open("Manual_page-0001.jpg")
-    img_manual_2 = Image.open("Manual_page-0002.jpg")
-    img_manual_3 = Image.open("Manual_page-0003.jpg")
-    img_manual_4 = Image.open("Manual_page-0004.jpg")
-    img_manual_5 = Image.open("Manual_page-0005.jpg")
-    img_manual_6 = Image.open("Manual_page-0006.jpg")
-    img_manual_7 = Image.open("Manual_page-0007.jpg")
-    img_manual_8 = Image.open("Manual_page-0008.jpg")
-    img_manual_9 = Image.open("Manual_page-0009.jpg")
-    img_manual_10 = Image.open("Manual_page-0010.jpg")
-    img_manual_11 = Image.open("Manual_page-0011.jpg")
-    img_manual_12 = Image.open("Manual_page-0012.jpg")
-    img_manual_13 = Image.open("Manual_page-0013.jpg")
-    img_manual_14 = Image.open("Manual_page-0014.jpg")
-    img_manual_15 = Image.open("Manual_page-0015.jpg")
-    img_manual_16 = Image.open("Manual_page-0016.jpg")
-    img_manual_17 = Image.open("Manual_page-0017.jpg")
-    img_manual_18 = Image.open("Manual_page-0018.jpg")
-    img_manual_19 = Image.open("Manual_page-0019.jpg")
-    img_manual_20 = Image.open("Manual_page-0020.jpg")
-    img_manual_21 = Image.open("Manual_page-0021.jpg")
-    img_manual_22 = Image.open("Manual_page-0022.jpg")
-    img_manual_23 = Image.open("Manual_page-0023.jpg")
-    img_manual_24 = Image.open("Manual_page-0024.jpg")
-    img_manual_25 = Image.open("Manual_page-0025.jpg")
-    img_manual_26 = Image.open("Manual_page-0026.jpg")
-    img_manual_27 = Image.open("Manual_page-0027.jpg")
-    img_manual_28 = Image.open("Manual_page-0028.jpg")
-    img_manual_29 = Image.open("Manual_page-0029.jpg")
-    img_manual_30 = Image.open("Manual_page-0030.jpg")
-    img_manual_31 = Image.open("Manual_page-0031.jpg")
+    }
+
+
     
-    st.image(img_manual_1)
-    st.image(img_manual_2)
-    st.image(img_manual_3)
-    st.image(img_manual_4)
-    st.image(img_manual_5)
-    st.image(img_manual_6)
-    st.image(img_manual_7)
-    st.image(img_manual_8)
-    st.image(img_manual_9)
-    st.image(img_manual_10)
-    st.image(img_manual_11)
-    st.image(img_manual_12)
-    st.image(img_manual_13)
-    st.image(img_manual_14)
-    st.image(img_manual_15)
-    st.image(img_manual_16)
-    st.image(img_manual_17)
-    st.image(img_manual_18)
-    st.image(img_manual_19)
-    st.image(img_manual_20)
-    st.image(img_manual_21)
-    st.image(img_manual_22)
-    st.image(img_manual_23)
-    st.image(img_manual_24)
-    st.image(img_manual_25)
-    st.image(img_manual_26)
-    st.image(img_manual_27)
-    st.image(img_manual_28)
-    st.image(img_manual_29)
-    st.image(img_manual_30)
-    st.image(img_manual_31)
+    st.markdown('''
+
+## User's Guide
+**Welcome to Sonic Log Interpretation Web Application! To begin using the application, follow these steps:**
+
+---
+### Choose a Source for LAS Files
+You have two options for providing LAS files to the Web Application:
+
+### Option 1: Upload LAS File
+1. Click on the "Browse Files" button to upload your LAS file.
+2. Navigate to your LAS file and select it in the file dialog.
+3. Click "Open" to upload the selected LAS file.
+    
+### Option 2: Use Sample LAS File
+- Select "Use Sample LAS File" to explore the application without uploading your own file.
+- Experience the features using a pre-loaded sample LAS file.
+''')
+
+    st.image(img['2'], width=1000)
+
+    st.markdown('''
+    ---                
+    
+    ### Options After LAS File Selection
+    Once the user selected or uploaded the LAS file, the user can explore and analyze the data using the following options:
+    
+    ### 1. LAS File Specification
+    Click on **LAS File Specification** in the navigation menu for detailed information about LAS file specifications.
+    ''')
+    st.image(img['3'], width=1000)
+    
+    
+    st.markdown('''
+    
+    ### 2. Well Information
+    Click on **Well Information** in the navigation menu to access well-related details such as name, location, and metadata.
+    ''')
+    st.image(img['4'], width=1000)
+    
+    st.markdown('''
+    ### 3. Curve Information
+    Click on **Curve Information** in the navigation menu to view details about curves present in the LAS file.
+    ''')
+    st.image(img['5'], width=1000)
+    
+    st.markdown('''
+    ### 4. Curve Data Overview
+    Click on **Curve Data Overview** in the navigation menu for a summarized view of the dataset within the curves.
+    ''')
+    st.image(img['6'], width=1000)
+    
+    st.markdown('''
+    ### 5. Log Visualization
+    Click on **Log Visualization** in the navigation menu to visually analyze log data through interactive charts and graphs.
+    
+    
+    **Sonic Porosity Calculation:**
+    
+    - Go to the selection of Curve Data.
+    - Select "DT" (Sonic Log) curve.
+    - After selecting Curve Data, choose checkboxes from the parameters to calculate sonic porosity.
+    
+    *Not familiar with curve mnemonics? Learn more in the Additional Info tab in the Web Application Main Menu.*
+    
+
+    ''')
+    st.image(img['7'], width=1000)
+    
+    st.markdown('''
+    ---
+    ### Data Visualization
+    The web application visualizes the data into the following:
+    
+    **Log Plot**
+    - Sonic Log (Track 1)
+    - Sonic Porosity (Track 2)
+    - Interpretation (Track 3)
+    ''')
+    st.image(img['8'], width=1000)
+    
+    st.markdown('''
+    **Graphs**
+    - Depth vs Sonic Porosity Graph
+    ''')
+    st.image(img['10'], width=1000)
+    st.markdown('''
+    - Sonic Log vs Sonic Porosity Graph             
+    ''')
+    st.image(img['11'], width=1000)
+    
+    
+    st.markdown('''
+    ---
+    ### Formation Evaluation
+    Under the Log Plot tab, the user can allow the web application to perform formation evaluation by clicking the formation evaluation checkbox.                
+                    
+                    ''')
+    st.image(img['9'], width=1000)
