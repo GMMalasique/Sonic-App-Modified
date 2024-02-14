@@ -19,7 +19,7 @@ class MultiApp:
         })
 
     def run(self, main_menu):
-        for app in self.apps:
+        for app in self.apps:   
             if main_menu == app["title"]:
                 app["function"]()
 

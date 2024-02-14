@@ -10,7 +10,6 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
     
 def app():
-    st.divider()
     def create_option_menu():
         return option_menu(
             None,

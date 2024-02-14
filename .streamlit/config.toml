@@ -1,0 +1,13 @@
+[theme]
+base="light"
+secondaryBackgroundColor="#f0f6f1"
+font="serif"
+
+
+
+[server]
+headless = true
+
+[browser]
+gatherUsageStats = false
+
