@@ -26,7 +26,7 @@ def app():
     def visualization_option_menu():
         return option_menu(
             None,
-            options=["Log Plot", "Depth vs Sonic Porosity", "Sonic Log vs Sonic Porosity"],
+            options=["Log Plot", "Depth vs Sonic Porosity", "Sonic Log vs Sonic Porosity", "Formation Evaluation"],
             default_index=0,
             orientation="horizontal",
             styles={
@@ -177,12 +177,14 @@ def app():
                 tfile.write(file.read())
                 las_file = lasio.read(tfile.name)
                 las_df = las_file.df()
+                las_df[las_df < -9000] = None
             
     
     if mode == 'Use sample LAS file':
         file = r"Sample.las"
         las_file = lasio.read(file)
         las_df = las_file.df()
+        las_df = las_df.replace(-9999.25, None)
     
     if file:
       selected_tab = create_option_menu()
@@ -243,34 +245,35 @@ def app():
             for depth, dt_log in zip(las_df['DEPTH'], las_df[selected_column]):
                 # Always include depth and Sonic Log Reading
                 row_data = {"Depth": depth, 'Sonic Log Reading': dt_log}
-        
-                # Apply correction factors and calculate sonic porosity
-                if mode_sandstone_seawater:
-                    phi_sandstone_seawater = ((dt_log - dt_matrix_sandstone) / (dt_fluid_seawater - dt_matrix_sandstone)) * correction_hydrocarbon * correction_unit
-                    row_data['Sandstone (Seawater)'] = phi_sandstone_seawater
-        
-                if mode_limestone_seawater:
-                    phi_limestone_seawater = ((dt_log - dt_matrix_limestone) / (dt_fluid_seawater - dt_matrix_limestone)) * correction_hydrocarbon * correction_unit
-                    row_data['Limestone (Seawater)'] = phi_limestone_seawater
-        
-                if mode_dolomite_seawater:
-                    phi_dolomite_seawater = ((dt_log - dt_matrix_dolomite) / (dt_fluid_seawater - dt_matrix_dolomite)) * correction_hydrocarbon * correction_unit
-                    row_data['Dolomite (Seawater)'] = phi_dolomite_seawater
-        
-                if mode_sandstone_freshwater:
-                    phi_sandstone_freshwater = ((dt_log - dt_matrix_sandstone) / (dt_fluid_freshwater - dt_matrix_sandstone)) * correction_hydrocarbon * correction_unit
-                    row_data['Sandstone (Freshwater)'] = phi_sandstone_freshwater
-        
-                if mode_limestone_freshwater:
-                    phi_limestone_freshwater = ((dt_log - dt_matrix_limestone) / (dt_fluid_freshwater - dt_matrix_limestone)) * correction_hydrocarbon * correction_unit
-                    row_data['Limestone (Freshwater)'] = phi_limestone_freshwater
-        
-                if mode_dolomite_freshwater:
-                    phi_dolomite_freshwater = ((dt_log - dt_matrix_dolomite) / (dt_fluid_freshwater - dt_matrix_dolomite)) * correction_hydrocarbon * correction_unit
-                    row_data['Dolomite (Freshwater)'] = phi_dolomite_freshwater
-        
-                # Add similar conditions for other checkboxes (e.g., mode_limestone_freshwater, mode_dolomite_freshwater, etc.)
-                data.append(row_data)
+                if dt_log is not None:
+            
+                    # Apply correction factors and calculate sonic porosity
+                    if mode_sandstone_seawater:
+                        phi_sandstone_seawater = ((dt_log - dt_matrix_sandstone) / (dt_fluid_seawater - dt_matrix_sandstone)) * correction_hydrocarbon * correction_unit
+                        row_data['Sandstone (Seawater)'] = phi_sandstone_seawater
+            
+                    if mode_limestone_seawater:
+                        phi_limestone_seawater = ((dt_log - dt_matrix_limestone) / (dt_fluid_seawater - dt_matrix_limestone)) * correction_hydrocarbon * correction_unit
+                        row_data['Limestone (Seawater)'] = phi_limestone_seawater
+            
+                    if mode_dolomite_seawater:
+                        phi_dolomite_seawater = ((dt_log - dt_matrix_dolomite) / (dt_fluid_seawater - dt_matrix_dolomite)) * correction_hydrocarbon * correction_unit
+                        row_data['Dolomite (Seawater)'] = phi_dolomite_seawater
+            
+                    if mode_sandstone_freshwater:
+                        phi_sandstone_freshwater = ((dt_log - dt_matrix_sandstone) / (dt_fluid_freshwater - dt_matrix_sandstone)) * correction_hydrocarbon * correction_unit
+                        row_data['Sandstone (Freshwater)'] = phi_sandstone_freshwater
+            
+                    if mode_limestone_freshwater:
+                        phi_limestone_freshwater = ((dt_log - dt_matrix_limestone) / (dt_fluid_freshwater - dt_matrix_limestone)) * correction_hydrocarbon * correction_unit
+                        row_data['Limestone (Freshwater)'] = phi_limestone_freshwater
+            
+                    if mode_dolomite_freshwater:
+                        phi_dolomite_freshwater = ((dt_log - dt_matrix_dolomite) / (dt_fluid_freshwater - dt_matrix_dolomite)) * correction_hydrocarbon * correction_unit
+                        row_data['Dolomite (Freshwater)'] = phi_dolomite_freshwater
+            
+                    # Add similar conditions for other checkboxes (e.g., mode_limestone_freshwater, mode_dolomite_freshwater, etc.)
+                    data.append(row_data)
                     
       # Create the DataFrame with appropriate columns
         las_df_revised = pd.DataFrame(data)
@@ -386,7 +389,7 @@ def app():
         
         trackname_1 = f'''Sonic Log ({unit_curve})'''
         trackname_2 = 'Sonic Porosity (p.u.)'
-        trackname_3 = 'Interpretation (p.u.)'
+        trackname_3 = 'Sonic Porosity (p.u.)'
               
         fig = make_subplots(rows=1, cols=3, shared_yaxes=True)
         
@@ -490,65 +493,6 @@ def app():
                     | Red | More than 1 |
                     
                     ''')
-        
-        st.sidebar.divider()                 
-        mode_formeval = st.sidebar.checkbox("Formation Evaluation")
-        if mode_formeval:
-            def result_calibration():
-                st.markdown('''**Negative porosity value. Porosity should range between 0 to 1.**
-                            \nPossible reason:
-                            \nWrong matrix used.
-                            \nCycle Skipping
-                                ''')
-        
-            def result_anomaly():
-                st.markdown('''**More than 1 porosity value. Reading anomalies detected.**
-                            \nPossible reason:
-                            \nCycle Skipping
-                            \nBorehole condition problem occurance. The holes might be larger than about 24 in. for common rocks.
-                            \nThe borehole is air-filled or if the mud is gas-cut
-                            ''')
-        
-            def result_correction():
-                st.markdown('''**Overestimate porosity value. Correction should be applied.**
-                            \nPossible reason:
-                            \nUncompacted
-                            \nHydrocarbon present
-                            \nComplex lithology
-                            ''')
-        
-            def result_good():
-                st.markdown('''**Normal sonic porosity reading.**''')
-            
-            need_calibration = False
-            have_anomaly = False
-            need_correction = False
-            no_error = False
-            st.divider()
-            st.subheader('Findings:')
-            for max_value in max_values_df['Max Value']:
-                if max_value < 0 and not need_calibration:
-                    need_calibration = True
-                    no_error = False
-                    result_calibration()
-            
-                if max_value > 1 and not have_anomaly:
-                    have_anomaly = True
-                    no_error = False
-                    result_anomaly()
-            
-                if 0.467 < max_value < 1 and not need_correction:
-                    need_correction = True
-                    no_error = False
-                    result_correction()
-            
-                if 0 < max_value < 0.467 and not need_calibration and not have_anomaly and not need_correction and not no_error:
-                    no_error = True
-                    need_calibration = False
-                    have_anomaly = False
-                    need_correction = False
-                    result_good()
-                    break
 
     if selected_subtab == "Depth vs Sonic Porosity":
         # Initialize the figure
@@ -611,7 +555,7 @@ def app():
             showline=True,
             anchor='free', 
             gridcolor='lightgray',
-            gridwidth=2
+            gridwidth=2,
         )
     
         # Update y-axis
@@ -632,8 +576,195 @@ def app():
     
         # Display the plot
         st.plotly_chart(fig, use_container_width=True, theme=None)
-
+        
+    if selected_subtab == "Formation Evaluation":
+        
+        def process_max_values(las_df, las_df_revised):
+            interpretation_df = pd.DataFrame({'Depth': las_df['DEPTH']})
+            
+            max_values = []
+            columns_to_plot = [col for col in las_df_revised.columns if col not in ["Depth", "Sonic Log Reading"]] 
+        
+            # Iterate over the rows in the DataFrame
+            for index, row in las_df_revised.iterrows():
+                # Initialize the maximum value as negative infinity
+                max_value = float('-inf')
+                
+                # Iterate over the columns you want to compare
+                for column in columns_to_plot:
+                    # Get the value from the current column
+                    value = row[column]
+                    
+                    # Update the maximum value if the current value is greater
+                    if value > max_value:
+                        max_value = value
+                
+                # Append the maximum value to the list
+                max_values.append(max_value)
+        
+            # Add the 'Max Value' column to the DataFrame
+            if mode_average:
+                interpretation_df["Max Value"] = las_df_revised['Average Porosity']
+                #st.table(interpretation_df)
+            else:
+                interpretation_df["Max Value"] = max_values
+            
+            return interpretation_df
         
 
 
-    
+        st.divider()
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            interpretation_df_result = process_max_values(las_df, las_df_revised)
+            fig = go.Figure()
+            graph_interpretation = go.Scatter(x=interpretation_df_result['Max Value'], y=las_df_revised['Depth'], name='Sonic Porosity Value')
+            fig.add_trace(graph_interpretation) 
+
+            fig.update_xaxes(
+                title="Sonic Porosity (p.u.)",
+                ticks="inside",
+                nticks=10,
+                minor_ticks='inside',
+                minor_showgrid=True,
+                showline=True,
+                anchor='free', 
+                position=1,
+                autorange='reversed',
+                rangemode='tozero',
+                gridwidth=2,
+                side='top',
+                range=[-0.15, 1.51],
+            )
+        
+            fig.update_yaxes(
+                title="Depth", 
+                ticks="inside", 
+                autorange='reversed',
+                showline=True,
+                gridwidth=2,
+                showticklabels=True
+
+            )
+            
+            color_scheme = {
+                (-0.15, 0): 'orange',
+                (0, 0.467): 'green',
+                (0.467, 1): 'gold',
+                (1, 1.51): 'red',
+            }
+            
+            # Iterate through color_scheme and add rectangles
+            for (x0, x1), color in color_scheme.items():
+                fig.add_shape(
+                    type="rect",
+                    x0=x0,
+                    y0=las_df_revised['Depth'].min(),
+                    x1=x1,
+                    y1=las_df_revised['Depth'].max(),
+                    fillcolor=color,
+                    opacity=0.3,  # Adjust opacity as needed
+                    layer="below",
+                    line=dict(width=0),
+                )
+            
+            # Update layout
+            fig.update_layout(
+                title=None,
+                height=1000,
+                width=1000
+            )
+        
+            # Display the plot
+            st.plotly_chart(fig, use_container_width=True, theme=None)
+                      
+        with col2:
+            
+            def filter_depth(interpretation_df_result, start_depth, stop_depth):
+                
+                top_depth = st.number_input('Top Depth', min_value=0.00, value=start_depth, step=100.00, key="top_depth")
+                bot_depth = st.number_input('Bottom Depth', min_value=0.00, value=stop_depth, step=100.00, key="bot_depth")
+                depth_filtered_df = interpretation_df_result
+                if st.button('Evaluate'):
+                    depth_filtered_df = interpretation_df_result[(interpretation_df_result['Depth'] >= top_depth) & (interpretation_df_result['Depth'] <= bot_depth)]
+                return depth_filtered_df, top_depth, bot_depth
+        
+            st.markdown('''Corresponding porosity value for each color:''')
+            st.markdown('''
+                            
+                            | Color | Range |
+                            | ----------- | ----------- |
+                            | Orange | Less than 0 |
+                            | Green | 0 to 0.476 |
+                            | Yellow | 0.476 to 1 |
+                            | Red | More than 1 |
+                            
+                            ''')
+            st.divider()
+            interpretation_df_result = process_max_values(las_df, las_df_revised)
+            st.markdown('''**Evaluate certain range of depth:**''')
+            
+            depth_filtered_df, top_depth, bot_depth = filter_depth(interpretation_df_result, start_depth, stop_depth)
+            #st.table(depth_filtered_df)
+            
+            st.subheader('Findings:')
+            result_message = None
+            need_calibration = False
+            have_anomaly = False
+            need_correction = False
+            no_error = True
+            
+            for max_value in depth_filtered_df['Max Value']:
+                if max_value < 0 and not need_calibration:
+                    need_calibration = True
+                    no_error = False
+                    
+                elif max_value > 1 and not have_anomaly:
+                    have_anomaly = True
+                    no_error = False
+            
+                    
+                elif 0.467 < max_value <= 1 and not need_correction:
+                    need_correction = True
+                    no_error = False
+            
+                    
+            if no_error:
+                result_message = '''**Normal sonic porosity reading.**'''
+                st.markdown(result_message)
+                
+            if need_calibration:
+                result_message = '''**Negative porosity value. Porosity should range between 0 to 1.**
+                                  \nPossible reasons:
+                                  \nWrong matrix used.
+                                  \nCycle Skipping'''
+                st.markdown(result_message)
+            
+            if have_anomaly:
+                result_message = '''**More than 1 porosity value. Reading anomalies detected.**
+                                  \nPossible reasons:
+                                  \nCycle Skipping
+                                  \nBorehole condition problem occurrence. The holes might be larger than about 24 in. for common rocks.
+                                  \nThe borehole is air-filled or if the mud is gas-cut'''
+                st.markdown(result_message)
+                
+            if need_correction:
+                result_message = '''**Overestimate porosity value. Correction should be applied.**
+                                  \nPossible reasons:
+                                  \nUncompacted
+                                  \nHydrocarbon present
+                                  \nComplex lithology'''
+                st.markdown(result_message)
+
+            #st.table(depth_filtered_df)
+        
+        
+        
+                
+        
+                
+                
+        
+        
+            
