@@ -794,7 +794,7 @@ def app():
                 
                 '''
 
-                return no_error_message, need_calibration_message, have_anomaly_message, need_correction_message, result_message
+                return result_message
             
 
         
@@ -808,7 +808,7 @@ def app():
             
             analysis_result = analyze_max_values(depth_filtered_df['Max Value'])
             
-            no_error_message, need_calibration_message, have_anomaly_message, need_correction_message, result_message = display_analysis_results(analysis_result)
+            result_message = display_analysis_results(analysis_result)
             
             orange = 0
             green = 0
