@@ -5,6 +5,7 @@ import tempfile
 import missingno as ms
 import lascheck
 import traceback
+import math
 from streamlit_option_menu import option_menu
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -162,15 +163,15 @@ def app():
     selected_tab = None
     selected_subtab = None
     max_values_df = pd.DataFrame()
-    
-    mode = st.sidebar.radio(
+    st.divider()
+    mode = st.radio(
         "**Select an option:**",
         ('Upload LAS file', 'Use sample LAS file')
     )
     st.divider()
     
     if mode == 'Upload LAS file':
-        file = st.sidebar.file_uploader('Upload a LAS file containing Sonic Log.')
+        file = st.file_uploader('Upload a LAS file containing Sonic Log.')
         if file is not None:
             # Create a temporary file and save the uploaded file's content into it
             with tempfile.NamedTemporaryFile(delete=False) as tfile:
@@ -282,18 +283,19 @@ def app():
     
         # Display the DataFrame as a presentable Excel-like table      
         if data == [] or selected_column == "DEPTH":
-          for depth in (las_df["DEPTH"]):
-            las_temporary = {"Depth": depth}
-            temporary.append(las_temporary)
+            for depth in (las_df["DEPTH"]):
+                las_temporary = {"Depth": depth}
+                temporary.append(las_temporary)
               
-          temp = pd.DataFrame(temporary)
-          st.subheader('Data Sets:')
-          st.dataframe(temp)
+            temp = pd.DataFrame(temporary)
+            with st.expander('Data Sets:', expanded=False):
+                st.dataframe(temp)
         else:
-          st.subheader('Data Sets:')
-          st.dataframe(las_df_revised)
-          st.divider()
-          selected_subtab = visualization_option_menu()
+            with st.expander('Data Sets:', expanded=True):
+
+                st.dataframe(las_df_revised)
+            st.divider()
+            selected_subtab = visualization_option_menu()
      
     if selected_subtab == "Log Plot":  
         def track1_xaxis(fig, title):
@@ -678,18 +680,7 @@ def app():
         
             # Display the plot
             st.plotly_chart(fig, use_container_width=True, theme=None)
-                      
-        with col2:
-            
-            def filter_depth(interpretation_df_result, start_depth, stop_depth):
-                
-                top_depth = st.number_input('Top Depth', min_value=0.00, value=start_depth, step=100.00, key="top_depth")
-                bot_depth = st.number_input('Bottom Depth', min_value=0.00, value=stop_depth, step=100.00, key="bot_depth")
-                depth_filtered_df = interpretation_df_result
-                if st.button('Evaluate'):
-                    depth_filtered_df = interpretation_df_result[(interpretation_df_result['Depth'] >= top_depth) & (interpretation_df_result['Depth'] <= bot_depth)]
-                return depth_filtered_df, top_depth, bot_depth
-        
+            st.divider()
             st.markdown('''Corresponding porosity value for each color:''')
             st.markdown('''
                             
@@ -701,70 +692,207 @@ def app():
                             | Red | More than 1 |
                             
                             ''')
-            st.divider()
+                      
+        with col2:
+            def filter_depth(interpretation_df_result, start_depth, stop_depth):
+                top_depth = st.number_input('Top Depth', min_value=0.00, value=start_depth, step=100.00, key="top_depth")
+                bot_depth = st.number_input('Bottom Depth', min_value=0.00, value=stop_depth, step=100.00, key="bot_depth")
+                
+                if st.button('Evaluate'):
+                    depth_filtered_df = interpretation_df_result[
+                        (interpretation_df_result['Depth'] >= top_depth) & (interpretation_df_result['Depth'] <= bot_depth)
+                    ]
+                else:
+                    depth_filtered_df = interpretation_df_result
+                    
+                return depth_filtered_df, top_depth, bot_depth
+        
+            def analyze_max_values(max_values):
+                result_message = None
+                need_calibration = False
+                have_anomaly = False
+                need_correction = False
+                no_error = True
+            
+                for max_value in max_values:
+                    if max_value < 0 and not need_calibration:
+                        need_calibration = True
+                        no_error = False
+            
+                    elif max_value > 1 and not have_anomaly:
+                        have_anomaly = True
+                        no_error = False
+            
+                    elif 0.467 < max_value <= 1 and not need_correction:
+                        need_correction = True
+                        no_error = False
+            
+                return {
+                    "result_message": result_message,
+                    "need_calibration": need_calibration,
+                    "have_anomaly": have_anomaly,
+                    "need_correction": need_correction,
+                    "no_error": no_error
+                }
+        
+            def thickness_weighted_average_porosity(depth_filtered_df):
+                sum_thickness_porosity = 0
+                avg_message = ""
+            
+                for max_value in depth_filtered_df['Max Value']:
+                    thickness_porosity = (step * max_value)
+                    sum_thickness_porosity += thickness_porosity
+            
+                thickness_weighted_average_porosity = sum_thickness_porosity / (step * len(depth_filtered_df['Max Value']))
+            
+                rounded_thickness_weighted_average_porosity = round(thickness_weighted_average_porosity, 4)
+                
+                if math.isnan(rounded_thickness_weighted_average_porosity):
+                    avg_message = '''The calculated thickness-weighted average porosity is marked as 'nan,' 
+                    indicating an undefined value.
+                    '''
+                elif rounded_thickness_weighted_average_porosity == float('-inf'):
+                    avg_message = '''The Thickness-Weighted Average Porosity is computed as '-inf',
+                    indicating a negative porosity value.
+                    '''
+                else:
+                    avg_message = f'''The calculated Thickness-Weighted Average Porosity is {rounded_thickness_weighted_average_porosity}
+                    '''
+
+                    
+           
+                return rounded_thickness_weighted_average_porosity, avg_message
+
+            def display_analysis_results(analysis_result):
+                no_error_message = ""
+                need_calibration_message = ""
+                have_anomaly_message = ""
+                need_correction_message = ""
+                if analysis_result["no_error"]:
+                    no_error_message = '''**Normal sonic porosity reading.**'''
+
+            
+                if analysis_result["need_calibration"]:
+                    need_calibration_message = '''**Negative porosity value was found in the curve.**
+                    This is unexpected for assumed matrix and fluid
+                    and may be attributed to factors such as the use of the wrong matrix or cycle skipping.
+                                    '''
+            
+                if analysis_result["have_anomaly"]:
+                    have_anomaly_message = '''**Anomalies in the sonic porosity readings are detected, 
+                    indicating the presence of more than one porosity value.** 
+                    Possible contributing factors include cycle skipping, 
+                    larger borehole conditions, or an air-filled borehole or mud affected by gas.'''
+            
+                if analysis_result["need_correction"]:
+                    need_correction_message = '''**An overestimation of porosity is observed, 
+                    indicating a need for correction.** 
+                    Possible reasons for overestimation encompass uncompacted conditions, 
+                    the presence of hydrocarbons, or a complex rock structure.'''
+                
+                result_message = f'''{no_error_message} {need_calibration_message} {have_anomaly_message} {need_correction_message}
+                
+                '''
+
+                return no_error_message, need_calibration_message, have_anomaly_message, need_correction_message, result_message
+            
+
+        
             interpretation_df_result = process_max_values(las_df, las_df_revised)
             st.markdown('''**Evaluate certain range of depth:**''')
-            
+        
             depth_filtered_df, top_depth, bot_depth = filter_depth(interpretation_df_result, start_depth, stop_depth)
-            #st.table(depth_filtered_df)
             
             st.subheader('Findings:')
-            result_message = None
-            need_calibration = False
-            have_anomaly = False
-            need_correction = False
-            no_error = True
+            rounded_thickness_weighted_average_porosity, avg_message = thickness_weighted_average_porosity(depth_filtered_df)
             
-            for max_value in depth_filtered_df['Max Value']:
-                if max_value < 0 and not need_calibration:
-                    need_calibration = True
-                    no_error = False
-                    
-                elif max_value > 1 and not have_anomaly:
-                    have_anomaly = True
-                    no_error = False
+            analysis_result = analyze_max_values(depth_filtered_df['Max Value'])
             
-                    
-                elif 0.467 < max_value <= 1 and not need_correction:
-                    need_correction = True
-                    no_error = False
+            no_error_message, need_calibration_message, have_anomaly_message, need_correction_message, result_message = display_analysis_results(analysis_result)
             
-                    
-            if no_error:
-                result_message = '''**Normal sonic porosity reading.**'''
-                st.markdown(result_message)
-                
-            if need_calibration:
-                result_message = '''**Negative porosity value. Porosity should range between 0 to 1.**
-                                  \nPossible reasons:
-                                  \nWrong matrix used.
-                                  \nCycle Skipping'''
-                st.markdown(result_message)
+            orange = 0
+            green = 0
+            yellow = 0
+            red = 0
+            total_data = 0
             
-            if have_anomaly:
-                result_message = '''**More than 1 porosity value. Reading anomalies detected.**
-                                  \nPossible reasons:
-                                  \nCycle Skipping
-                                  \nBorehole condition problem occurrence. The holes might be larger than about 24 in. for common rocks.
-                                  \nThe borehole is air-filled or if the mud is gas-cut'''
-                st.markdown(result_message)
-                
-            if need_correction:
-                result_message = '''**Overestimate porosity value. Correction should be applied.**
-                                  \nPossible reasons:
-                                  \nUncompacted
-                                  \nHydrocarbon present
-                                  \nComplex lithology'''
-                st.markdown(result_message)
+            for data in depth_filtered_df['Max Value']:
+                if data < 0:
+                    orange += 1
+                if 0 <= data <= 0.476:
+                    green += 1
+                if 0.476 < data <= 1:
+                    yellow += 1
+                if data > 1:
+                    red += 1
 
-            #st.table(depth_filtered_df)
-        
-        
-        
-                
-        
-                
-                
-        
-        
+            total_data = len(depth_filtered_df['Max Value'])
             
+            orange_result = ""
+            green_result = ""
+            yellow_result = ""
+            red_result = ""
+            if orange != 0:
+                orange_result = f"Orange: {(orange/total_data)*100:.2f}%"
+
+            if green != 0:
+                green_result = f"Green: {(green/total_data)*100:.2f}%"
+
+            if yellow != 0:
+                yellow_result = f"Yellow: {(yellow/total_data)*100:.2f}%"
+
+            if red != 0:
+                red_result = f"Red: {(red/total_data)*100:.2f}%"
+             
+            
+            if mode_sandstone_seawater:
+                matrix = "Sandstone"
+                fluid = "Seawater"
+            if mode_limestone_seawater:
+                matrix = "Limestone"
+                fluid = "Seawater"
+            if mode_dolomite_seawater:
+                matrix = "Dolomite"
+                fluid = "Seawater"
+            if mode_sandstone_freshwater:
+                matrix = "Sandstone"
+                fluid = "Freshwater"
+            if mode_limestone_freshwater:
+                matrix = "Limestone"
+                fluid = "Freshwater"
+            if mode_dolomite_freshwater:
+                matrix = "Dolomite"
+                fluid = "Freshwater"
+            
+            st.markdown(f'''
+                        
+                        Assuming the matrix was **{matrix}** and the fluid was **{fluid}**, 
+                        the depth range of {top_depth} to {bot_depth} indicates the following findings:
+                        \n- {avg_message}
+                        \n- {result_message} 
+                        \n Examining the sonic porosity curve and its alignment with the color-coded track, 
+                        the distribution is as follows: 
+                            \n **{orange_result}** 
+                            \n **{green_result}**
+                            \n **{yellow_result}**
+                            \n **{red_result}**
+                        ''')
+
+            
+
+        
+            with st.expander("Show Table"):
+                # Rename the 'Max Value' column to 'Sonic Porosity'
+                depth_filtered_df = depth_filtered_df.rename(columns={'Max Value': 'Sonic Porosity'})
+                st.dataframe(depth_filtered_df)
+        
+                
+                        
+                        
+                                
+                        
+                                
+                                
+                        
+                        
+                            
