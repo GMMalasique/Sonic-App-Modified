@@ -748,11 +748,11 @@ def app():
                 rounded_weighted_average_porosity = round(weighted_average_porosity, 4)
                 
                 if math.isnan(rounded_weighted_average_porosity):
-                    avg_message = '''The calculated thickness-weighted average porosity is marked as 'nan,' 
+                    avg_message = '''The calculated weighted average porosity is marked as 'nan,' 
                     indicating an undefined value.
                     '''
                 elif rounded_weighted_average_porosity == float('-inf'):
-                    avg_message = '''The Thickness-Weighted Average Porosity is computed as '-inf',
+                    avg_message = '''The Weighted Average Porosity is computed as '-inf',
                     indicating a negative porosity value.
                     '''
                 else:
