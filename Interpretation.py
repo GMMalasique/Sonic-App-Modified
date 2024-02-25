@@ -832,6 +832,7 @@ def app():
             green_result = ""
             yellow_result = ""
             red_result = ""
+            
             if orange != 0:
                 orange_result = f"Orange: {(orange/total_data)*100:.2f}%"
 
@@ -864,29 +865,34 @@ def app():
                 matrix = "Dolomite"
                 fluid = "Freshwater"
             
-            st.markdown(f'''
-                        
-                        Assuming the matrix was **{matrix}** and the fluid was **{fluid}**, 
-                        the depth range of {top_depth} to {bot_depth} indicates the following findings:
-                        \n- {avg_message}
-                        \n- {result_message} 
-                        \n Examining the sonic porosity curve and its alignment with the color-coded track, 
-                        the distribution is as follows: 
-                            \n **{orange_result}** 
-                            \n **{green_result}**
-                            \n **{yellow_result}**
-                            \n **{red_result}**
-                        
-                        ''')
+            try:
+                st.markdown(f'''
+                            
+                            Assuming the matrix was **{matrix}** and the fluid was **{fluid}**, 
+                            the depth range of {top_depth} to {bot_depth} indicates the following findings:
+                            \n- {avg_message}
+                            \n- {result_message} 
+                            \n Examining the sonic porosity curve and its alignment with the color-coded track, 
+                            the distribution is as follows: 
+                                \n **{orange_result}** 
+                                \n **{green_result}**
+                                \n **{yellow_result}**
+                                \n **{red_result}**
+                            
+                            ''')
+                            
+                st.cache
+                with st.expander("Show Table"):
+                    # Rename the 'Max Value' column to 'Sonic Porosity'
+                    depth_filtered_df = depth_filtered_df.rename(columns={'Max Value': 'Sonic Porosity'})
+                    st.dataframe(depth_filtered_df)
+                
+            except UnboundLocalError:
+                st.warning('Must select parameter.')
 
             
 
-            st.cache
-            with st.expander("Show Table"):
-                # Rename the 'Max Value' column to 'Sonic Porosity'
-                depth_filtered_df = depth_filtered_df.rename(columns={'Max Value': 'Sonic Porosity'})
-                st.dataframe(depth_filtered_df)
-        
+
                 
                         
                         
