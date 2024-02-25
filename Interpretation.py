@@ -111,6 +111,7 @@ def app():
             unit_curve = las_file.curves[selected_column].unit  # Get unit from the selected curve
             if unit_curve.upper() not in ('US/M', 'US/FT', 'US/F'):
                 st.warning('**Note**: Unit must be either (us/m) or (us/ft). Assuming the selected curve data is Sonic and its unit is us/ft.')
+                unit_curve = "us/ft"
         except KeyError:
             if selected_column == "DEPTH":
                 unit_curve = las_file.curves[list(las_file.curves.keys())[0]].unit   # Get unit from the selected curve
@@ -708,7 +709,7 @@ def app():
                 return depth_filtered_df, top_depth, bot_depth
         
             def analyze_max_values(max_values):
-                result_message = None
+
                 need_calibration = False
                 have_anomaly = False
                 need_correction = False
@@ -728,14 +729,13 @@ def app():
                         no_error = False
             
                 return {
-                    "result_message": result_message,
                     "need_calibration": need_calibration,
                     "have_anomaly": have_anomaly,
                     "need_correction": need_correction,
                     "no_error": no_error
-                }
+                }, no_error
         
-            def weighted_average_porosity(depth_filtered_df):
+            def weighted_average_porosity(depth_filtered_df, no_error):
                 sum_thickness_porosity = 0
                 avg_message = ""
             
@@ -751,12 +751,19 @@ def app():
                     avg_message = '''The calculated weighted average porosity is marked as 'nan,' 
                     indicating an undefined value.
                     '''
-                elif rounded_weighted_average_porosity == float('-inf'):
+                if rounded_weighted_average_porosity < 0 :
                     avg_message = '''The Weighted Average Porosity is computed as '-inf',
                     indicating a negative porosity value.
                     '''
-                else:
+                if no_error == True:
                     avg_message = f'''The calculated Weighted Average Porosity is {rounded_weighted_average_porosity}
+                    '''
+                else: 
+                    avg_message = f'''The calculated Weighted Average Porosity is {rounded_weighted_average_porosity}. 
+                    '''
+                if rounded_weighted_average_porosity > 1:
+                    avg_message = f'''The calculated Weighted Average Porosity is {rounded_weighted_average_porosity}, 
+                    which exceeds the expected range of 0 to 1.
                     '''
 
                     
@@ -804,11 +811,9 @@ def app():
             depth_filtered_df, top_depth, bot_depth = filter_depth(interpretation_df_result, start_depth, stop_depth)
             
             st.subheader('Findings:')
-            rounded_weighted_average_porosity, avg_message = weighted_average_porosity(depth_filtered_df)
-            
-            analysis_result = analyze_max_values(depth_filtered_df['Max Value'])
-            
+            analysis_result, no_error = analyze_max_values(depth_filtered_df['Max Value'])
             result_message = display_analysis_results(analysis_result)
+            rounded_weighted_average_porosity, avg_message = weighted_average_porosity(depth_filtered_df, no_error)
             
             orange = 0
             green = 0
