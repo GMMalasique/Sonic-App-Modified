@@ -196,7 +196,7 @@ def app():
         well_name =  las_file.header['Well'].WELL.value
         start_depth = las_df['DEPTH'].min()
         stop_depth = las_df['DEPTH'].max()
-        step = abs(las_file.header['Well'].STEP.value)
+        step = abs(las_df['DEPTH'][1]-las_df['DEPTH'][0])
         company_name =  las_file.header['Well'].COMP.value
         date =  las_file.header['Well'].DATE.value
         curvename = las_file.curves
@@ -735,33 +735,33 @@ def app():
                     "no_error": no_error
                 }
         
-            def thickness_weighted_average_porosity(depth_filtered_df):
+            def weighted_average_porosity(depth_filtered_df):
                 sum_thickness_porosity = 0
                 avg_message = ""
             
                 for max_value in depth_filtered_df['Max Value']:
-                    thickness_porosity = (step * max_value)
+                    thickness_porosity = (1 * max_value)
                     sum_thickness_porosity += thickness_porosity
             
-                thickness_weighted_average_porosity = sum_thickness_porosity / (step * len(depth_filtered_df['Max Value']))
+                weighted_average_porosity = sum_thickness_porosity / (1 * len(depth_filtered_df['Max Value']))
             
-                rounded_thickness_weighted_average_porosity = round(thickness_weighted_average_porosity, 4)
+                rounded_weighted_average_porosity = round(weighted_average_porosity, 4)
                 
-                if math.isnan(rounded_thickness_weighted_average_porosity):
+                if math.isnan(rounded_weighted_average_porosity):
                     avg_message = '''The calculated thickness-weighted average porosity is marked as 'nan,' 
                     indicating an undefined value.
                     '''
-                elif rounded_thickness_weighted_average_porosity == float('-inf'):
+                elif rounded_weighted_average_porosity == float('-inf'):
                     avg_message = '''The Thickness-Weighted Average Porosity is computed as '-inf',
                     indicating a negative porosity value.
                     '''
                 else:
-                    avg_message = f'''The calculated Thickness-Weighted Average Porosity is {rounded_thickness_weighted_average_porosity}
+                    avg_message = f'''The calculated Weighted Average Porosity is {rounded_weighted_average_porosity}
                     '''
 
                     
            
-                return rounded_thickness_weighted_average_porosity, avg_message
+                return rounded_weighted_average_porosity, avg_message
 
             def display_analysis_results(analysis_result):
                 no_error_message = ""
@@ -804,7 +804,7 @@ def app():
             depth_filtered_df, top_depth, bot_depth = filter_depth(interpretation_df_result, start_depth, stop_depth)
             
             st.subheader('Findings:')
-            rounded_thickness_weighted_average_porosity, avg_message = thickness_weighted_average_porosity(depth_filtered_df)
+            rounded_weighted_average_porosity, avg_message = weighted_average_porosity(depth_filtered_df)
             
             analysis_result = analyze_max_values(depth_filtered_df['Max Value'])
             
@@ -876,11 +876,12 @@ def app():
                             \n **{green_result}**
                             \n **{yellow_result}**
                             \n **{red_result}**
+                        
                         ''')
 
             
 
-        
+            st.cache
             with st.expander("Show Table"):
                 # Rename the 'Max Value' column to 'Sonic Porosity'
                 depth_filtered_df = depth_filtered_df.rename(columns={'Max Value': 'Sonic Porosity'})
