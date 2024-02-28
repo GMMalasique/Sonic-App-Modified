@@ -1111,8 +1111,14 @@ def app():
                                 **Formation Fluid:** Seawater\n
                                 **Depth:** {top_depth} - {bot_depth}
                                 ''')
-                    # Display the chart using Streamlit
-                    st.plotly_chart(pie_seawater)
+                    
+                    if SS_SW == 0 and LM_SW == 0 and DL_SW == 0:
+                        st.markdown('''
+                                    - The lithology could be other than sandstone, limestone, or dolomite.
+                                    - It is highly recommended to assess the formation within a narrow depth range.
+                                    ''')
+                    else:
+                        st.plotly_chart(pie_seawater)
                     st.divider()
                 else:
                     st.markdown('''
@@ -1183,8 +1189,14 @@ def app():
                                 **Formation Fluid:** Freshwater\n
                                 **Depth:** {top_depth} - {bot_depth}
                                 ''')
-                    # Display the chart using Streamlit
-                    st.plotly_chart(pie_freshwater)  
+
+                    if SS_FW == 0 and LM_FW == 0 and DL_FW == 0:
+                        st.markdown('''
+                                    - The lithology could be other than sandstone, limestone, or dolomite.
+                                    - It is highly recommended to assess the formation within a narrow depth range.
+                                    ''')                        
+                    else:
+                        st.plotly_chart(pie_freshwater)  
                 else:
                     st.markdown('''
                             To identify lithology assuming the freshwater as the formation fluid, select all the following parameters:
