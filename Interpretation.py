@@ -1059,21 +1059,17 @@ def app():
                     orange_percentage, green_percentage, yellow_percentage, red_percentage, nan_percentage = analyze_depth_column(
                         depth_filtered_df, parameter)
                     
-                    if orange_percentage == 0:
-                        SS_SW = (green_percentage * 3) + (yellow_percentage * 2) + (red_percentage * 1) 
-                    else: 
-                        SS_SW = 0
+                    SS_SW = (green_percentage * 4) + (yellow_percentage * 3) + (red_percentage * 2) + (orange_percentage * 1)
+
     
                 
                     # LIMESTONE (SEAWATER)
                     parameter = 'Limestone (Seawater)'
                     orange_percentage, green_percentage, yellow_percentage, red_percentage, nan_percentage = analyze_depth_column(
                         depth_filtered_df, parameter)
-    
-                    if orange_percentage == 0:
-                        LM_SW = (green_percentage * 3) + (yellow_percentage * 2) + (red_percentage * 1)
-                    else:
-                        LM_SW = 0
+
+                    LM_SW = (green_percentage * 4) + (yellow_percentage * 3) + (red_percentage * 2) + (orange_percentage * 1)
+
     
                 
                     # DOLOMITE (SEAWATER)
@@ -1081,10 +1077,8 @@ def app():
                     orange_percentage, green_percentage, yellow_percentage, red_percentage, nan_percentage = analyze_depth_column(
                         depth_filtered_df, parameter)
                     
-                    if orange_percentage == 0:
-                        DL_SW = (green_percentage * 3) + (yellow_percentage * 2) + (red_percentage * 1) 
-                    else:
-                        DL_SW = 0
+                    DL_SW = (green_percentage * 4) + (yellow_percentage * 3) + (red_percentage * 2) + (orange_percentage * 1)
+
                     
                     
                     data_seawater = []
@@ -1136,10 +1130,8 @@ def app():
                     orange_percentage, green_percentage, yellow_percentage, red_percentage, nan_percentage = analyze_depth_column(
                         depth_filtered_df, parameter)
     
-                    if orange_percentage == 0:
-                        SS_FW = (green_percentage * 3) + (yellow_percentage * 2) + (red_percentage * 1)
-                    else:
-                        SS_FW = 0    
+                    SS_FW = (green_percentage * 4) + (yellow_percentage * 3) + (red_percentage * 2) + (orange_percentage * 1)
+  
                     
                 
                     # LIMESTONE (FRESHWATER)
@@ -1147,20 +1139,16 @@ def app():
                     orange_percentage, green_percentage, yellow_percentage, red_percentage, nan_percentage = analyze_depth_column(
                         depth_filtered_df, parameter)
     
-                    if orange_percentage == 0:
-                        LM_FW = (green_percentage * 3) + (yellow_percentage * 2) + (red_percentage * 1)
-                    else:
-                        LM_FW = 0
+                    LM_FW = (green_percentage * 4) + (yellow_percentage * 3) + (red_percentage * 2) + (orange_percentage * 1)
+
                     
                     # DOLOMITE (FRESHWATER)
                     parameter = 'Dolomite (Freshwater)'
                     orange_percentage, green_percentage, yellow_percentage, red_percentage, nan_percentage = analyze_depth_column(
                         depth_filtered_df, parameter)
     
-                    if orange_percentage == 0:
-                        DL_FW = (green_percentage * 3) + (yellow_percentage * 2) + (red_percentage * 1)
-                    else:
-                        DL_FW = 0
+                    DL_FW = (green_percentage * 4) + (yellow_percentage * 3) + (red_percentage * 2) + (orange_percentage * 1)
+
                     
                     data_freshwater = []
                     denominator_freshwater = SS_FW + LM_FW + DL_FW 
