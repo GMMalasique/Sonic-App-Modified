@@ -785,7 +785,7 @@ def app():
                 rounded_weighted_average_porosity = round(weighted_average_porosity, 4)
                 
                 if no_error == True & for_ave_por == True:
-                    avg_message = f'''The calculated Weighted Average Porosity is {rounded_weighted_average_porosity}
+                    avg_message = f'''The calculated Weighted Average Porosity is {rounded_weighted_average_porosity}.
                     '''
                     
                 elif no_error == False & for_ave_por == True:
