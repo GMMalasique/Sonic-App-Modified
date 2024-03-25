@@ -111,7 +111,6 @@ def app():
             unit_curve = las_file.curves[selected_column].unit  # Get unit from the selected curve
             if unit_curve.upper() not in ('US/M', 'US/FT', 'US/F'):
                 st.warning('**Note**: Unit must be either (us/m) or (us/ft). Assuming the selected curve data is Sonic and its unit is us/ft.')
-                unit_curve = "us/ft"
         except KeyError:
             if selected_column == "DEPTH":
                 unit_curve = las_file.curves[list(las_file.curves.keys())[0]].unit   # Get unit from the selected curve
@@ -225,8 +224,6 @@ def app():
     
     if selected_tab == "Log Visualization":   
         selected_column, correction_unit, unit_curve = visualize_curve_data(las_file, las_df)
-        correction_hydrocarbon = hydrocarbon_correction()
-        parameters()
         st.sidebar.subheader('Parameters:')
         if file:
             mode_sandstone_seawater = st.sidebar.checkbox("Matrix: Sandstone | Fluid: Seawater")
@@ -236,7 +233,22 @@ def app():
             mode_limestone_freshwater = st.sidebar.checkbox("Matrix: Limestone | Fluid: Freshwater")
             mode_dolomite_freshwater = st.sidebar.checkbox("Matrix: Dolomite | Fluid: Freshwater")
             #mode_average = st.sidebar.checkbox("Average Sonic Porosity")
-        
+        correction_hydrocarbon = hydrocarbon_correction()
+        parameters()
+
+        count_parameters = 0    
+        if mode_sandstone_seawater:
+            count_parameters += 1       
+        if mode_limestone_seawater:
+            count_parameters += 1  
+        if mode_dolomite_seawater:
+            count_parameters += 1  
+        if mode_sandstone_freshwater:
+            count_parameters += 1  
+        if mode_limestone_freshwater:
+            count_parameters += 1  
+        if mode_dolomite_freshwater:
+            count_parameters += 1  
     
             
         # Check if 'DT' is a valid curve in the LAS file
@@ -442,7 +454,7 @@ def app():
             #curve_3 = go.Scatter(x=las_df_revised['Average Porosity'], y=las_df_revised['Depth'], name='Average Porosity Value')
             #fig.add_trace(curve_3, row=1, col=3)
         #else:
-        curve_3 = go.Scatter(x=max_values_df['Max Value'], y=las_df_revised['Depth'], name='Maximum Porosity Value')
+        curve_3 = go.Scatter(x=max_values_df['Max Value'], y=las_df_revised['Depth'], name='Sonic Porosity Value (Track 3)')
         fig.add_trace(curve_3, row=1, col=3)
         
         track3_xaxis(fig, trackname_3)
@@ -485,7 +497,8 @@ def app():
         st.plotly_chart(fig, use_container_width=True, theme=None)
         
 
-            
+        if count_parameters > 1:
+            st.warning("Multiple parameters are selected. The parameter with the highest sonic porosity among the selected parameters is displayed in Track 3.")
         st.markdown('''Corresponding porosity value for each color:''')
         st.markdown('''
                     
@@ -497,6 +510,7 @@ def app():
                     | Red | More than 1 |
                     
                     ''')
+    
 
     if selected_subtab == "Depth vs Sonic Porosity":
         # Initialize the figure
@@ -614,589 +628,470 @@ def app():
             
             return interpretation_df
         
+        #Formation Evaluation
         col1, col2 = st.columns(2)
-        
-        with col1:
-            interpretation_df_result = process_max_values(las_df, las_df_revised)
-            fig = go.Figure()
-            graph_interpretation = go.Scatter(x=interpretation_df_result['Max Value'], y=las_df_revised['Depth'], name='Sonic Porosity Value')
-            fig.add_trace(graph_interpretation) 
 
-            fig.update_xaxes(
-                title="Sonic Porosity (p.u.)",
-                ticks="inside",
-                nticks=10,
-                minor_ticks='inside',
-                minor_showgrid=True,
-                showline=True,
-                anchor='free', 
-                position=1,
-                autorange='reversed',
-                rangemode='tozero',
-                gridwidth=2,
-                side='top',
-                range=[-0.15, 1.51],
-            )
-        
-            fig.update_yaxes(
-                title="Depth", 
-                ticks="inside", 
-                autorange='reversed',
-                showline=True,
-                gridwidth=2,
-                showticklabels=True
+        def filter_depth(las_df_revised, start_depth, stop_depth):
+            top_depth = col2.number_input('Top Depth', min_value=0.00, value=start_depth, step=100.00, key="top_depth")
+            bot_depth = col2.number_input('Bottom Depth', min_value=0.00, value=stop_depth, step=100.00, key="bot_depth")
+            
+            if col2.button('Evaluate'):
+                depth_filtered_df = las_df_revised[
+                    (las_df_revised['Depth'] >= top_depth) & (las_df_revised['Depth'] <= bot_depth)
+                ]
+            else:   
+                depth_filtered_df = las_df_revised
+                
+            if col2.button('Reset'):
+                depth_filtered_df = las_df_revised
 
-            )
+
             
-            color_scheme = {
-                (-0.15, 0): 'orange',
-                (0, 0.467): 'green',
-                (0.467, 1): 'gold',
-                (1, 1.51): 'red',
-            }
-            
-            # Iterate through color_scheme and add rectangles
-            for (x0, x1), color in color_scheme.items():
-                fig.add_shape(
-                    type="rect",
-                    x0=x0,
-                    y0=las_df_revised['Depth'].min(),
-                    x1=x1,
-                    y1=las_df_revised['Depth'].max(),
-                    fillcolor=color,
-                    opacity=0.3,  # Adjust opacity as needed
-                    layer="below",
-                    line=dict(width=0),
-                )
-            
-            # Update layout
-            fig.update_layout(
-                title=None,
-                height=1000,
-                width=1000
-            )
+            return depth_filtered_df, top_depth, bot_depth
         
-            # Display the plot
-            st.plotly_chart(fig, use_container_width=True, theme=None)
-            st.divider()
-            st.markdown('''Corresponding porosity value for each color:''')
-            st.markdown('''
-                            
-                            | Color | Range |
-                            | ----------- | ----------- |
-                            | Orange | Less than 0 |
-                            | Green | 0 to 0.476 |
-                            | Yellow | 0.476 to 1 |
-                            | Red | More than 1 |
+        
+        
+        def analyze_values(column):
+            need_calibration = False
+            have_anomaly = False
+            need_correction = False
+            for_ave_por= True 
+            have_null = False
+            no_error = True
+            
+            for value in depth_filtered_df[column]:
+                if value < 0 and not need_calibration:
+                    need_calibration = True
+                    no_error = False
+                    for_ave_por= False
+                
+                elif value > 1 and not have_anomaly:
+                    have_anomaly = True
+                    no_error = False
+                    for_ave_por= False
+                
+                elif 0.467 < value <= 1 and not need_correction:
+                    need_correction = True
+                    no_error = False
+                
+            null_value = depth_filtered_df[column].isnull().sum()
+            if null_value != 0:
+                have_null = True
+            
+            return { 
+                "need_calibration": need_calibration,
+                "have_anomaly": have_anomaly,
+                "need_correction": need_correction,
+                "no_error": no_error,
+                "have_null": have_null
+            }, no_error, for_ave_por
+            
+        def display_analysis_results(analysis_result):
+            no_error_message = ""
+            need_calibration_message = ""
+            have_anomaly_message = ""
+            need_correction_message = ""
+            have_null_message = ""
+            if analysis_result["no_error"]:
+                no_error_message = '''**Normal sonic porosity reading.**'''
+            
+            if analysis_result["have_null"]:
+                have_null_message = '''**Found null or missing values in porosity data.**'''
+
+            if analysis_result["need_calibration"]:
+                need_calibration_message = '''**Negative porosity value was found in the curve.**
+                This is unexpected for assumed matrix and fluid
+                and may be attributed to factors such as the use of the wrong matrix or cycle skipping.
+                                '''
+        
+            if analysis_result["have_anomaly"]:
+                have_anomaly_message = '''**Anomalies in the sonic porosity readings are detected, 
+                indicating the presence of more than one porosity value.** 
+                Possible contributing factors include cycle skipping, 
+                larger borehole conditions, or an air-filled borehole or mud affected by gas.'''
+        
+            if analysis_result["need_correction"]:
+                need_correction_message = '''**An overestimation of porosity is observed, 
+                indicating a need for correction.** 
+                Possible reasons for overestimation encompass uncompacted conditions, 
+                the presence of hydrocarbons, or a complex rock structure.'''
+            
+            result_message = f'''{no_error_message} {have_null_message} {need_calibration_message} {have_anomaly_message} {need_correction_message}
+            
+            '''
+
+            return result_message
+        
+        def weighted_average_porosity(column, no_error, for_ave_por, green_result):
+            #to make it thickness-weighted average porosity, replace 1 with the step (bottom depth - top depth)
+            sum_thickness_porosity = 0
+            avg_message = ""
+        
+            for value in depth_filtered_df[column]:
+                thickness_porosity = (1 * value)
+                sum_thickness_porosity += thickness_porosity
+        
+            weighted_average_porosity = sum_thickness_porosity / (1 * len(depth_filtered_df[column]))
+        
+            rounded_weighted_average_porosity = round(weighted_average_porosity, 4)
+            
+            if (no_error == True) & (green_result == 100):
+                avg_message = f'''The calculated Weighted Average Porosity is {rounded_weighted_average_porosity}.
+                '''
+                
+            elif no_error == False & for_ave_por == True:
+                avg_message = f'''The calculated Weighted Average Porosity is {rounded_weighted_average_porosity}.
+                Due to overestimated porosity, the weighted average porosity might not be reliable.
+                '''
+            elif math.isnan(rounded_weighted_average_porosity):
+                avg_message = '''The calculated weighted average porosity is marked as 'nan,' 
+                indicating a null/missing value from the specified range of depth.
+                '''
+                
+            else:
+                avg_message = '''Calculating Weighted Average Porosity is not applicable.'''
+
+            return rounded_weighted_average_porosity, avg_message
+        
+        def analyze_porosity_values(column):
+            orange = 0
+            green = 0
+            yellow = 0
+            red = 0
+            nan = depth_filtered_df[column].isnull().sum()
+            total_data = len(depth_filtered_df[column])
+        
+            for data in depth_filtered_df[column]:
+                if data < 0:
+                    orange += 1
+                if 0 <= data <= 0.476:
+                    green += 1
+                if 0.476 < data <= 1:
+                    yellow += 1
+                if data > 1:
+                    red += 1
+        
+            orange_result = (orange/total_data)*100
+            green_result = (green/total_data)*100
+            yellow_result = (yellow/total_data)*100
+            red_result = (red/total_data)*100
+            nan_result = (nan/total_data)*100
+            
+            orange_msg = "Negative Porosity Values: 0.00%"
+            green_msg = "Normal Porosity Values: 0.00%"
+            yellow_msg = "Overestimated Porosity Values: 0.00%"
+            red_msg = "Abnormal Porosity Values: 0.00%"
+            nan_msg = "NaN Values: 0.00%"
+        
+            if orange != 0:
+                orange_msg = f"Negative Porosity Values: {orange_result:.4f}%"
+        
+            if green != 0:
+                green_msg = f"Normal Porosity Values: {green_result:.4f}%"
+        
+            if yellow != 0:
+                yellow_msg = f"Overestimated Porosity Values: {yellow_result:.4f}%"
+        
+            if red != 0:
+                red_msg = f"Abnormal Porosity Values: {red_result:.4f}"
+        
+            if nan != 0:
+                nan_msg = f"NaN Values: {nan_result:.4f}%"
+        
+            return green_result, orange_msg, green_msg, yellow_msg, red_msg, nan_msg
+        
+
+        #Main Flow for Formation Evaluation
+        depth_filtered_df, top_depth, bot_depth = filter_depth(las_df_revised, start_depth, stop_depth)   
+      
+        try:
+            with col2.expander("Filtered Data Sets:", expanded=True):
+                st.dataframe(depth_filtered_df)
+                
+        except UnboundLocalError:
+            col2.warning('Must select parameter.')
+        
+        
+        st.divider()
+        with st.expander("Findings:", expanded = False):
+            if mode_sandstone_seawater:
+                matrix = "Sandstone"
+                fluid = "Seawater"
+                column = 'Sandstone (Seawater)'
+                
+                analysis_result, no_error, for_ave_por = analyze_values(column)
+                result_message = display_analysis_results(analysis_result)
+                green_result, orange_msg, green_msg, yellow_msg, red_msg, nan_msg = analyze_porosity_values(column)
+                rounded_weighted_average_porosity, avg_message = weighted_average_porosity(column, no_error, for_ave_por, green_result)
+    
+                
+                st.markdown(f'''
+                            =====
+                            \nAssuming the matrix was **{matrix}** and the fluid was **{fluid}**, 
+                            the depth range of {top_depth} to {bot_depth} indicates the following findings:
+                            \n- {avg_message}
+                            \n- {result_message} 
+                            \n Examining the sonic porosity curve and its alignment with the color-coded track, 
+                            the distribution is as follows:
+    
+                                    \n **{orange_msg}** 
+                                    
+                                    \n **{green_msg}**
+                                    
+                                    \n **{yellow_msg}**
+                                    
+                                    \n **{red_msg}**
+                                    
+                                    \n **{nan_msg}**
                             
                             ''')
-                      
-        with col2:
+            
+            if mode_limestone_seawater:
+                matrix = "Limestone"
+                fluid = "Seawater"
+                column = 'Limestone (Seawater)'
+                
+                analysis_result, no_error, for_ave_por = analyze_values(column)
+                result_message = display_analysis_results(analysis_result)
+                green_result, orange_msg, green_msg, yellow_msg, red_msg, nan_msg = analyze_porosity_values(column)
+                rounded_weighted_average_porosity, avg_message = weighted_average_porosity(column, no_error, for_ave_por, green_result)
     
-            def filter_depth(las_df_revised, start_depth, stop_depth):
-                top_depth = st.number_input('Top Depth', min_value=0.00, value=start_depth, step=100.00, key="top_depth")
-                bot_depth = st.number_input('Bottom Depth', min_value=0.00, value=stop_depth, step=100.00, key="bot_depth")
                 
-                if st.button('Evaluate'):
-                    depth_filtered_df = las_df_revised[
-                        (las_df_revised['Depth'] >= top_depth) & (las_df_revised['Depth'] <= bot_depth)
-                    ]
-                else:
-                    depth_filtered_df = las_df_revised
-                
-                return depth_filtered_df, top_depth, bot_depth
-            
-            
-            
-            def analyze_values(column):
-                need_calibration = False
-                have_anomaly = False
-                need_correction = False
-                for_ave_por= True 
-                no_error = True
-                
-                for value in depth_filtered_df[column]:
-                    if value < 0 and not need_calibration:
-                        need_calibration = True
-                        no_error = False
-                        for_ave_por= False
-                    
-                    elif value > 1 and not have_anomaly:
-                        have_anomaly = True
-                        no_error = False
-                        for_ave_por= False
-                    
-                    elif 0.467 < value <= 1 and not need_correction:
-                        need_correction = True
-                        no_error = False
-                    
-                    
-                return { 
-                    "need_calibration": need_calibration,
-                    "have_anomaly": have_anomaly,
-                    "need_correction": need_correction,
-                    "no_error": no_error
-                }, no_error, for_ave_por
-                
-            def display_analysis_results(analysis_result):
-                no_error_message = ""
-                need_calibration_message = ""
-                have_anomaly_message = ""
-                need_correction_message = ""
-                if analysis_result["no_error"]:
-                    no_error_message = '''**Normal sonic porosity reading.**'''
+                st.markdown(f'''
+                            =====
+                            \nAssuming the matrix was **{matrix}** and the fluid was **{fluid}**, 
+                            the depth range of {top_depth} to {bot_depth} indicates the following findings:
+                            \n- {avg_message}
+                            \n- {result_message} 
+                            \n Examining the sonic porosity curve and its alignment with the color-coded track, 
+                            the distribution is as follows:
     
-            
-                if analysis_result["need_calibration"]:
-                    need_calibration_message = '''**Negative porosity value was found in the curve.**
-                    This is unexpected for assumed matrix and fluid
-                    and may be attributed to factors such as the use of the wrong matrix or cycle skipping.
-                                    '''
-            
-                if analysis_result["have_anomaly"]:
-                    have_anomaly_message = '''**Anomalies in the sonic porosity readings are detected, 
-                    indicating the presence of more than one porosity value.** 
-                    Possible contributing factors include cycle skipping, 
-                    larger borehole conditions, or an air-filled borehole or mud affected by gas.'''
-            
-                if analysis_result["need_correction"]:
-                    need_correction_message = '''**An overestimation of porosity is observed, 
-                    indicating a need for correction.** 
-                    Possible reasons for overestimation encompass uncompacted conditions, 
-                    the presence of hydrocarbons, or a complex rock structure.'''
-                
-                result_message = f'''{no_error_message} {need_calibration_message} {have_anomaly_message} {need_correction_message}
-                
-                '''
-    
-                return result_message
-            
-            def weighted_average_porosity(column, no_error, for_ave_por):
-                #to make it thickness-weighted average porosity, replace 1 with the step (bottom depth - top depth)
-                sum_thickness_porosity = 0
-                avg_message = ""
-            
-                for value in depth_filtered_df[column]:
-                    thickness_porosity = (1 * value)
-                    sum_thickness_porosity += thickness_porosity
-            
-                weighted_average_porosity = sum_thickness_porosity / (1 * len(depth_filtered_df[column]))
-            
-                rounded_weighted_average_porosity = round(weighted_average_porosity, 4)
-                
-                if no_error == True & for_ave_por == True:
-                    avg_message = f'''The calculated Weighted Average Porosity is {rounded_weighted_average_porosity}.
-                    '''
-                    
-                elif no_error == False & for_ave_por == True:
-                    avg_message = f'''The calculated Weighted Average Porosity is {rounded_weighted_average_porosity}.
-                    Due to overestimated porosity, the weighted average porosity might not be reliable.
-                    '''
-                elif math.isnan(rounded_weighted_average_porosity):
-                    avg_message = '''The calculated weighted average porosity is marked as 'nan,' 
-                    indicating a null/missing value from the specified range of depth.
-                    '''
-                    
-                else:
-                    avg_message = '''Calculating Weighted Average Porosity is not applicable.'''
-    
-                return rounded_weighted_average_porosity, avg_message
-            
-            def analyze_porosity_values(column):
-                orange = 0
-                green = 0
-                yellow = 0
-                red = 0
-                nan = depth_filtered_df[column].isnull().sum()
-                total_data = len(depth_filtered_df[column])
-            
-                for data in depth_filtered_df[column]:
-                    if data < 0:
-                        orange += 1
-                    if 0 <= data <= 0.476:
-                        green += 1
-                    if 0.476 < data <= 1:
-                        yellow += 1
-                    if data > 1:
-                        red += 1
-            
-                orange_result = "Orange: 0.00%"
-                green_result = "Green: 0.00%"
-                yellow_result = "Yellow: 0.00%"
-                red_result = "Red: 0.00%"
-                nan_result = "NaN: 0.00%"
-            
-                if orange != 0:
-                    orange_result = f"Orange: {(orange/total_data)*100:.4f}%"
-            
-                if green != 0:
-                    green_result = f"Green: {(green/total_data)*100:.4f}%"
-            
-                if yellow != 0:
-                    yellow_result = f"Yellow: {(yellow/total_data)*100:.4f}%"
-            
-                if red != 0:
-                    red_result = f"Red: {(red/total_data)*100:.4f}"
-            
-                if nan != 0:
-                    nan_result = f"NaN: {(nan/total_data)*100:.4f}%"
-            
-                return orange_result, green_result, yellow_result, red_result, nan_result
-    
-            #Main Flow for Formation Evaluation
-            depth_filtered_df, top_depth, bot_depth = filter_depth(las_df_revised, start_depth, stop_depth)        
-          
-            try:
-                st.cache
-                with st.expander("Filtered Data Sets:"):
-                    st.dataframe(depth_filtered_df)
-                    
-            except UnboundLocalError:
-                st.warning('Must select parameter.')
-            
-            
-            
-            with st.expander("Findings:", expanded = False):
-                if mode_sandstone_seawater:
-                    matrix = "Limestone"
-                    fluid = "Seawater"
-                    column = 'Sandstone (Seawater)'
-                    
-                    analysis_result, no_error, for_ave_por = analyze_values(column)
-                    rounded_weighted_average_porosity, avg_message = weighted_average_porosity(column, no_error, for_ave_por)
-                    result_message = display_analysis_results(analysis_result)
-                    orange_result, green_result, yellow_result, red_result, nan_result = analyze_porosity_values(column)
-        
-                    
-                    st.markdown(f'''
-                                =====
-                                \nAssuming the matrix was **{matrix}** and the fluid was **{fluid}**, 
-                                the depth range of {top_depth} to {bot_depth} indicates the following findings:
-                                \n- {avg_message}
-                                \n- {result_message} 
-                                \n Examining the sonic porosity curve and its alignment with the color-coded track, 
-                                the distribution is as follows:
-        
-                                        \n **{orange_result}** 
-                                        \n **{green_result}**
-                                        \n **{yellow_result}**
-                                        \n **{red_result}**
-                                        \n **{nan_result}**
-                                
-                                ''')
-                
-                if mode_limestone_seawater:
-                    matrix = "Limestone"
-                    fluid = "Seawater"
-                    column = 'Limestone (Seawater)'
-                    
-                    analysis_result, no_error, for_ave_por = analyze_values(column)
-                    rounded_weighted_average_porosity, avg_message = weighted_average_porosity(column, no_error, for_ave_por)
-                    result_message = display_analysis_results(analysis_result)
-                    orange_result, green_result, yellow_result, red_result, nan_result = analyze_porosity_values(column)
-        
-                    
-                    st.markdown(f'''
-                                =====
-                                \nAssuming the matrix was **{matrix}** and the fluid was **{fluid}**, 
-                                the depth range of {top_depth} to {bot_depth} indicates the following findings:
-                                \n- {avg_message}
-                                \n- {result_message} 
-                                \n Examining the sonic porosity curve and its alignment with the color-coded track, 
-                                the distribution is as follows:
-        
-                                        \n **{orange_result}** 
-                                        \n **{green_result}**
-                                        \n **{yellow_result}**
-                                        \n **{red_result}**
-                                        \n **{nan_result}**
-                                
-                                ''')
-             
-                if mode_dolomite_seawater:
-                    matrix = "Dolomite"
-                    fluid = "Seawater"
-                    column = 'Dolomite (Seawater)'
-                    
-                    analysis_result, no_error, for_ave_por = analyze_values(column)
-                    rounded_weighted_average_porosity, avg_message = weighted_average_porosity(column, no_error, for_ave_por)
-                    result_message = display_analysis_results(analysis_result)
-                    orange_result, green_result, yellow_result, red_result, nan_result = analyze_porosity_values(column)
-        
-                    
-                    st.markdown(f'''
-                                =====
-                                \nAssuming the matrix was **{matrix}** and the fluid was **{fluid}**, 
-                                the depth range of {top_depth} to {bot_depth} indicates the following findings:
-                                \n- {avg_message}
-                                \n- {result_message} 
-                                \n Examining the sonic porosity curve and its alignment with the color-coded track, 
-                                the distribution is as follows:
-        
-                                        \n **{orange_result}** 
-                                        \n **{green_result}**
-                                        \n **{yellow_result}**
-                                        \n **{red_result}**
-                                        \n **{nan_result}**
-                                
-                                ''')
-                    
-                if mode_sandstone_freshwater:
-                    matrix = "Sandstone"
-                    fluid = "Freshwater"
-                    column = 'Sandstone (Freshwater)'
-                    
-                    analysis_result, no_error, for_ave_por = analyze_values(column)
-                    rounded_weighted_average_porosity, avg_message = weighted_average_porosity(column, no_error, for_ave_por)
-                    result_message = display_analysis_results(analysis_result)
-                    orange_result, green_result, yellow_result, red_result, nan_result = analyze_porosity_values(column)
-        
-                    
-                    st.markdown(f'''
-                                =====
-                                \nAssuming the matrix was **{matrix}** and the fluid was **{fluid}**, 
-                                the depth range of {top_depth} to {bot_depth} indicates the following findings:
-                                \n- {avg_message}
-                                \n- {result_message} 
-                                \n Examining the sonic porosity curve and its alignment with the color-coded track, 
-                                the distribution is as follows:
-        
-                                        \n **{orange_result}** 
-                                        \n **{green_result}**
-                                        \n **{yellow_result}**
-                                        \n **{red_result}**
-                                        \n **{nan_result}**
-                                ''')
-                    
-                if mode_limestone_freshwater:
-                    matrix = "Limestone"
-                    fluid = "Freshwater"
-                    column = 'Limestone (Freshwater)'
-                    
-                    analysis_result, no_error, for_ave_por = analyze_values(column)
-                    rounded_weighted_average_porosity, avg_message = weighted_average_porosity(column, no_error, for_ave_por)
-                    result_message = display_analysis_results(analysis_result)
-                    orange_result, green_result, yellow_result, red_result, nan_result = analyze_porosity_values(column)
-        
-                    
-                    st.markdown(f'''
-                                =====
-                                \nAssuming the matrix was **{matrix}** and the fluid was **{fluid}**, 
-                                the depth range of {top_depth} to {bot_depth} indicates the following findings:
-                                \n- {avg_message}
-                                \n- {result_message} 
-                                \n Examining the sonic porosity curve and its alignment with the color-coded track, 
-                                the distribution is as follows:
-        
-                                        \n **{orange_result}** 
-                                        \n **{green_result}**
-                                        \n **{yellow_result}**
-                                        \n **{red_result}**
-                                        \n **{nan_result}**
-                                
-                                ''')
-                    
-                if mode_dolomite_freshwater:
-                    matrix = "Dolomite"
-                    fluid = "Freshwater"
-                    column = 'Dolomite (Freshwater)'
-                    
-                    analysis_result, no_error, for_ave_por = analyze_values(column)
-                    rounded_weighted_average_porosity, avg_message = weighted_average_porosity(column, no_error, for_ave_por)
-                    result_message = display_analysis_results(analysis_result)
-                    orange_result, green_result, yellow_result, red_result, nan_result = analyze_porosity_values(column)
-        
-                    
-                    st.markdown(f'''
-                                =====
-                                \nAssuming the matrix was **{matrix}** and the fluid was **{fluid}**, 
-                                the depth range of {top_depth} to {bot_depth} indicates the following findings:
-                                \n- {avg_message}
-                                \n- {result_message} 
-                                \n Examining the sonic porosity curve and its alignment with the color-coded track, 
-                                the distribution is as follows:
-        
-                                        \n **{orange_result}** 
-                                        \n **{green_result}**
-                                        \n **{yellow_result}**
-                                        \n **{red_result}**
-                                        \n **{nan_result}**
-                                
-                                ''')
-    
+                                    \n **{orange_msg}** 
+                                    \n **{green_msg}**
+                                    \n **{yellow_msg}**
+                                    \n **{red_msg}**
+                                    \n **{nan_msg}**
                             
-    
-            with st.expander("Conclusion", expanded=False):
-                def analyze_depth_column(depth_filtered_df, parameter):
-                    orange = 0
-                    green = 0
-                    yellow = 0
-                    red = 0
-                    nan = depth_filtered_df[parameter].isnull().sum()
-                    total_data = len(depth_filtered_df[parameter])
-            
-                    for data in depth_filtered_df[parameter]:
-                        if data < 0:
-                            orange += 1
-                        elif 0 <= data <= 0.476:
-                            green += 1
-                        elif 0.476 < data <= 1:
-                            yellow += 1
-                        elif data > 1:
-                            red += 1
-            
-                    orange_percentage = (orange / total_data)
-                    green_percentage = (green / total_data)
-                    yellow_percentage = (yellow / total_data)
-                    red_percentage = (red / total_data)
-                    nan_percentage = (nan / total_data)
-            
-                    return orange_percentage, green_percentage, yellow_percentage, red_percentage, nan_percentage
-            
-                if mode_sandstone_seawater and mode_limestone_seawater and mode_dolomite_seawater:
-                    # SANDSTONE (SEAWATER)
-                    parameter = 'Sandstone (Seawater)'
-                    orange_percentage, green_percentage, yellow_percentage, red_percentage, nan_percentage = analyze_depth_column(
-                        depth_filtered_df, parameter)
-                    
-                    SS_SW = (green_percentage * 4) + (yellow_percentage * 3) + (red_percentage * 2) + (orange_percentage * 1)
-
+                            ''')
+         
+            if mode_dolomite_seawater:
+                matrix = "Dolomite"
+                fluid = "Seawater"
+                column = 'Dolomite (Seawater)'
+                
+                analysis_result, no_error, for_ave_por = analyze_values(column)
+                result_message = display_analysis_results(analysis_result)
+                green_result, orange_msg, green_msg, yellow_msg, red_msg, nan_msg = analyze_porosity_values(column)
+                rounded_weighted_average_porosity, avg_message = weighted_average_porosity(column, no_error, for_ave_por, green_result)
     
                 
-                    # LIMESTONE (SEAWATER)
-                    parameter = 'Limestone (Seawater)'
-                    orange_percentage, green_percentage, yellow_percentage, red_percentage, nan_percentage = analyze_depth_column(
-                        depth_filtered_df, parameter)
-
-                    LM_SW = (green_percentage * 4) + (yellow_percentage * 3) + (red_percentage * 2) + (orange_percentage * 1)
-
+                st.markdown(f'''
+                            =====
+                            \nAssuming the matrix was **{matrix}** and the fluid was **{fluid}**, 
+                            the depth range of {top_depth} to {bot_depth} indicates the following findings:
+                            \n- {avg_message}
+                            \n- {result_message} 
+                            \n Examining the sonic porosity curve and its alignment with the color-coded track, 
+                            the distribution is as follows:
+    
+                                    \n **{orange_msg}** 
+                                    \n **{green_msg}**
+                                    \n **{yellow_msg}**
+                                    \n **{red_msg}**
+                                    \n **{nan_msg}**
+                            
+                            ''')
+                
+            if mode_sandstone_freshwater:
+                matrix = "Sandstone"
+                fluid = "Freshwater"
+                column = 'Sandstone (Freshwater)'
+                
+                analysis_result, no_error, for_ave_por = analyze_values(column)
+                result_message = display_analysis_results(analysis_result)
+                green_result, orange_msg, green_msg, yellow_msg, red_msg, nan_msg = analyze_porosity_values(column)
+                rounded_weighted_average_porosity, avg_message = weighted_average_porosity(column, no_error, for_ave_por, green_result)
     
                 
-                    # DOLOMITE (SEAWATER)
-                    parameter = 'Dolomite (Seawater)'
-                    orange_percentage, green_percentage, yellow_percentage, red_percentage, nan_percentage = analyze_depth_column(
-                        depth_filtered_df, parameter)
-                    
-                    DL_SW = (green_percentage * 4) + (yellow_percentage * 3) + (red_percentage * 2) + (orange_percentage * 1)
+                st.markdown(f'''
+                            =====
+                            \nAssuming the matrix was **{matrix}** and the fluid was **{fluid}**, 
+                            the depth range of {top_depth} to {bot_depth} indicates the following findings:
+                            \n- {avg_message}
+                            \n- {result_message} 
+                            \n Examining the sonic porosity curve and its alignment with the color-coded track, 
+                            the distribution is as follows:
+    
+                                    \n **{orange_msg}** 
+                                    \n **{green_msg}**
+                                    \n **{yellow_msg}**
+                                    \n **{red_msg}**
+                                    \n **{nan_msg}**
+                            ''')
+                
+            if mode_limestone_freshwater:
+                matrix = "Limestone"
+                fluid = "Freshwater"
+                column = 'Limestone (Freshwater)'
+                
+                analysis_result, no_error, for_ave_por = analyze_values(column)
+                result_message = display_analysis_results(analysis_result)
+                green_result, orange_msg, green_msg, yellow_msg, red_msg, nan_msg = analyze_porosity_values(column)
+                rounded_weighted_average_porosity, avg_message = weighted_average_porosity(column, no_error, for_ave_por, green_result)
+    
+                
+                st.markdown(f'''
+                            =====
+                            \nAssuming the matrix was **{matrix}** and the fluid was **{fluid}**, 
+                            the depth range of {top_depth} to {bot_depth} indicates the following findings:
+                            \n- {avg_message}
+                            \n- {result_message} 
+                            \n Examining the sonic porosity curve and its alignment with the color-coded track, 
+                            the distribution is as follows:
+    
+                                    \n **{orange_msg}** 
+                                    \n **{green_msg}**
+                                    \n **{yellow_msg}**
+                                    \n **{red_msg}**
+                                    \n **{nan_msg}**
+                            
+                            ''')
+                
+            if mode_dolomite_freshwater:
+                matrix = "Dolomite"
+                fluid = "Freshwater"
+                column = 'Dolomite (Freshwater)'
+                
+                analysis_result, no_error, for_ave_por = analyze_values(column)
+                result_message = display_analysis_results(analysis_result)
+                green_result, orange_msg, green_msg, yellow_msg, red_msg, nan_msg = analyze_porosity_values(column)
+                rounded_weighted_average_porosity, avg_message = weighted_average_porosity(column, no_error, for_ave_por, green_result)
+    
+                
+                st.markdown(f'''
+                            =====
+                            \nAssuming the matrix was **{matrix}** and the fluid was **{fluid}**, 
+                            the depth range of {top_depth} to {bot_depth} indicates the following findings:
+                            \n- {avg_message}
+                            \n- {result_message} 
+                            \n Examining the sonic porosity curve and its alignment with the color-coded track, 
+                            the distribution is as follows:
+    
+                                    \n **{orange_msg}** 
+                                    \n **{green_msg}**
+                                    \n **{yellow_msg}**
+                                    \n **{red_msg}**
+                                    \n **{nan_msg}**
+                            
+                            ''')
 
-                    
-                    
-                    data_seawater = []
-                    denominator_seawater = SS_SW + LM_SW + DL_SW 
-                    if SS_SW != 0:
-                        sand_sea = (SS_SW / denominator_seawater) * 100
-                        data_seawater.append({"Sandstone (Seawater)": sand_sea})
-                    
-                    if LM_SW != 0:
-                        lime_sea = (LM_SW / denominator_seawater) * 100
-                        data_seawater.append({"Limestone (Seawater)": lime_sea})
-                    
-                    if DL_SW != 0:
-                        dol_sea = (DL_SW / denominator_seawater) * 100
-                        data_seawater.append({"Dolomite (Seawater)": dol_sea})
+                
+        #
+        default_y_range = [depth_filtered_df['Depth'].min(), depth_filtered_df['Depth'].max()]
+        
+        interpretation_df_result = process_max_values(las_df, las_df_revised)
+        fig = go.Figure(layout=go.Layout(yaxis=dict(range=default_y_range)))
+        
+        graph_interpretation = go.Scatter(x=interpretation_df_result['Max Value'], y=las_df_revised['Depth'], name='Sonic Porosity Value')
+        fig.add_trace(graph_interpretation) 
+        
+        fig.update_xaxes(
+            title="Sonic Porosity (p.u.)",
+            ticks="inside",
+            nticks=10,
+            minor_ticks='inside',
+            minor_showgrid=True,
+            showline=True,
+            anchor='free', 
+            position=1,
+            autorange='reversed',
+            rangemode='tozero',
+            gridwidth=2,
+            side='top',
+            range=[-0.15, 1.51],
+        )
+        
+        fig.update_yaxes(
+            title="Depth", 
+            ticks="inside", 
+            autorange='reversed',
+            range=default_y_range,
+            showline=True,
+            gridwidth=2,
+            showticklabels=True
+        )
+        
+        color_scheme = {
+            (-0.15, 0): 'orange',
+            (0, 0.467): 'green',
+            (0.467, 1): 'gold',
+            (1, 1.51): 'red',
+        }
+        
+        # Iterate through color_scheme and add rectangles
+        for (x0, x1), color in color_scheme.items():
+            fig.add_shape(
+                type="rect",
+                x0=x0,
+                y0=las_df_revised['Depth'].min(),
+                x1=x1,
+                y1=las_df_revised['Depth'].max(),
+                fillcolor=color,
+                opacity=0.3,  # Adjust opacity as needed
+                layer="below",
+                line=dict(width=0),
+            )
+        
+        # Update layout
+        fig.update_layout(
+            title=None,
+            height=1000,
+            width=1000
+        )
+        
+        # Display the plot
+        col1.plotly_chart(fig, use_container_width=True, theme=None)
+
+        if count_parameters > 1:
+            col2.warning("Multiple parameters are selected. The parameter with the highest sonic porosity among the selected parameters is displayed.")
+        col2.markdown('''Corresponding porosity value for each color:''')
+        col2.markdown('''
                         
-                    data_seawater_labels = [list(item.keys())[0] for item in data_seawater]
-                    data_seawater_values = [list(item.values())[0] for item in data_seawater]
-                    
-                    # Create a Plotly Pie chart
-                    pie_seawater = go.Figure(data=go.Pie(labels=data_seawater_labels, values=data_seawater_values))
-                    
-                    st.markdown(f'''
-                                **Formation Fluid:** Seawater\n
-                                **Depth:** {top_depth} - {bot_depth}
-                                ''')
-                    
-                    if SS_SW == 0 and LM_SW == 0 and DL_SW == 0:
-                        st.markdown('''
-                                    - The lithology could be other than sandstone, limestone, or dolomite.
-                                    - It is highly recommended to assess the formation within a narrow depth range.
-                                    ''')
-                    else:
-                        st.plotly_chart(pie_seawater)
-                    st.divider()
-                else:
-                    st.markdown('''
-                            To identify lithology assuming the seawater as the formation fluid, select all the following parameters:
-                            - Sandstone (Seawater)
-                            - Limestone (Seawater)
-                            - Dolomite (Seawater)
-                             
-                             ''')
-                
-                
-                if mode_sandstone_freshwater and mode_limestone_freshwater and mode_dolomite_freshwater:
-                    # SANSTONE (FRESHWATER)
-                    parameter = 'Sandstone (Freshwater)'
-                    orange_percentage, green_percentage, yellow_percentage, red_percentage, nan_percentage = analyze_depth_column(
-                        depth_filtered_df, parameter)
-    
-                    SS_FW = (green_percentage * 4) + (yellow_percentage * 3) + (red_percentage * 2) + (orange_percentage * 1)
-  
-                    
-                
-                    # LIMESTONE (FRESHWATER)
-                    parameter = 'Limestone (Freshwater)'
-                    orange_percentage, green_percentage, yellow_percentage, red_percentage, nan_percentage = analyze_depth_column(
-                        depth_filtered_df, parameter)
-    
-                    LM_FW = (green_percentage * 4) + (yellow_percentage * 3) + (red_percentage * 2) + (orange_percentage * 1)
+                        | Color | Range |
+                        | ----------- | ----------- |
+                        | Orange | Less than 0 |
+                        | Green | 0 to 0.476 |
+                        | Yellow | 0.476 to 1 |
+                        | Red | More than 1 |
+                        
+                        ''')
+        st.divider()
+        st.info('''
+**What do you mean by scale in sonic porosity, and how does it work?**\n
 
-                    
-                    # DOLOMITE (FRESHWATER)
-                    parameter = 'Dolomite (Freshwater)'
-                    orange_percentage, green_percentage, yellow_percentage, red_percentage, nan_percentage = analyze_depth_column(
-                        depth_filtered_df, parameter)
-    
-                    DL_FW = (green_percentage * 4) + (yellow_percentage * 3) + (red_percentage * 2) + (orange_percentage * 1)
-
-                    
-                    data_freshwater = []
-                    denominator_freshwater = SS_FW + LM_FW + DL_FW 
-        
-                    
-                    if SS_FW != 0:
-                        sand_fre = (SS_FW / denominator_freshwater * 100)
-                        data_freshwater.append({"Sandstone (Freshwater)": sand_fre})
-                    
-                    if LM_FW != 0:
-                        lime_fre = (LM_FW / denominator_freshwater) * 100
-                        data_freshwater.append({"Limestone (Freshwater)": lime_fre})
-                    
-                    if DL_FW != 0:
-                        dol_fre = (DL_FW / denominator_freshwater) * 100
-                        data_freshwater.append({"Dolomite (Freshwater)": dol_fre})
-                    
-        
-                    data_freshwater_labels = [list(item.keys())[0] for item in data_freshwater]
-                    data_freshwater_values = [list(item.values())[0] for item in data_freshwater]           
-        
-                    # Create a Plotly Pie chart
-                    pie_freshwater = go.Figure(data=go.Pie(labels=data_freshwater_labels, values=data_freshwater_values))
-                    
-                    st.markdown(f'''
-                                **Formation Fluid:** Freshwater\n
-                                **Depth:** {top_depth} - {bot_depth}
-                                ''')
-
-                    if SS_FW == 0 and LM_FW == 0 and DL_FW == 0:
-                        st.markdown('''
-                                    - The lithology could be other than sandstone, limestone, or dolomite.
-                                    - It is highly recommended to assess the formation within a narrow depth range.
-                                    ''')                        
-                    else:
-                        st.plotly_chart(pie_freshwater)  
-                else:
-                    st.markdown('''
-                            To identify lithology assuming the freshwater as the formation fluid, select all the following parameters:
-                            - Sandstone (Freshwater)
-                            - Limestone (Freshwater)
-                            - Dolomite (Freshwater)
-                             
-                             ''')
+Essentially, the scale refers to the assumed lithology in calculating sonic porosity. 
+For instance, if limestone is the chosen scale, 
+the sonic porosity is true to the formations with lithology similar to limestone.
+                ''', icon="ℹ️")
+        st.info('''
+**How do we determine which scale to use for sonic porosity?**\n
+Determining the appropriate scale depends on the dominant lithology in the formation. 
+However, it is common to use limestone as the scale for sonic porosity, as using sandstone often results in negative sonic porosity. 
+Using limestone as equivalent porosity units is relatively straightforward compared to sandstone. 
+Limestone, mainly composed of calcite, contrasts with sandstone, 
+which consists of various minerals such as quartz, mica, feldspar, and others. 
+Understanding the mineralogy leads to more reliable porosity assessments.
+                ''', icon="ℹ️")
                 
-    
-            
-            
+        st.info('''
+**How do we know if the calculated sonic porosity is reliable?**\n
+The sonic porosity was determined using the Wyllie time-average equation, 
+which assumes that the formation is well-compacted. 
+Shale content and mineralogy influence sonic porosity. 
+To obtain a more reliable porosity value, shale correction should be applied, 
+and knowledge of the formation's mineralogy is essential.
+                
+                ''', icon="ℹ️")
     
     
     
