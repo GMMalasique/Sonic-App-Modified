@@ -701,8 +701,7 @@ def app():
             if analysis_result["need_calibration"]:
                 need_calibration_message = '''**Negative porosity value was found in the curve.**
                 This is unexpected for assumed matrix and fluid
-                and may be attributed to factors such as the use of the wrong matrix or cycle skipping.
-                                '''
+                and may be attributed to factors such as the use of the wrong matrix or cycle skipping.'''
         
             if analysis_result["have_anomaly"]:
                 have_anomaly_message = '''**Anomalies in the sonic porosity readings are detected, 
@@ -716,9 +715,7 @@ def app():
                 Possible reasons for overestimation encompass uncompacted conditions, 
                 the presence of hydrocarbons, or a complex rock structure.'''
             
-            result_message = f'''{no_error_message} {have_null_message} {need_calibration_message} {have_anomaly_message} {need_correction_message}
-            
-            '''
+            result_message = f'''{no_error_message} {have_null_message} {need_calibration_message} {have_anomaly_message} {need_correction_message}'''
 
             return result_message
         
@@ -831,8 +828,7 @@ def app():
                             the depth range of {top_depth} to {bot_depth} indicates the following findings:
                             \n- {avg_message}
                             \n- {result_message} 
-                            \n Examining the sonic porosity curve and its alignment with the color-coded track, 
-                            the distribution is as follows:
+                            \n Sonic porosity value distribution:
     
                                     \n **{orange_msg}** 
                                     
@@ -863,8 +859,7 @@ def app():
                             the depth range of {top_depth} to {bot_depth} indicates the following findings:
                             \n- {avg_message}
                             \n- {result_message} 
-                            \n Examining the sonic porosity curve and its alignment with the color-coded track, 
-                            the distribution is as follows:
+                            \n Sonic porosity value distribution:
     
                                     \n **{orange_msg}** 
                                     \n **{green_msg}**
@@ -891,8 +886,7 @@ def app():
                             the depth range of {top_depth} to {bot_depth} indicates the following findings:
                             \n- {avg_message}
                             \n- {result_message} 
-                            \n Examining the sonic porosity curve and its alignment with the color-coded track, 
-                            the distribution is as follows:
+                            \n Sonic porosity value distribution:
     
                                     \n **{orange_msg}** 
                                     \n **{green_msg}**
@@ -919,8 +913,7 @@ def app():
                             the depth range of {top_depth} to {bot_depth} indicates the following findings:
                             \n- {avg_message}
                             \n- {result_message} 
-                            \n Examining the sonic porosity curve and its alignment with the color-coded track, 
-                            the distribution is as follows:
+                            \n Sonic porosity value distribution:
     
                                     \n **{orange_msg}** 
                                     \n **{green_msg}**
@@ -946,8 +939,7 @@ def app():
                             the depth range of {top_depth} to {bot_depth} indicates the following findings:
                             \n- {avg_message}
                             \n- {result_message} 
-                            \n Examining the sonic porosity curve and its alignment with the color-coded track, 
-                            the distribution is as follows:
+                            \n Sonic porosity value distribution:
     
                                     \n **{orange_msg}** 
                                     \n **{green_msg}**
@@ -974,8 +966,7 @@ def app():
                             the depth range of {top_depth} to {bot_depth} indicates the following findings:
                             \n- {avg_message}
                             \n- {result_message} 
-                            \n Examining the sonic porosity curve and its alignment with the color-coded track, 
-                            the distribution is as follows:
+                            \n Sonic porosity value distribution:
     
                                     \n **{orange_msg}** 
                                     \n **{green_msg}**
