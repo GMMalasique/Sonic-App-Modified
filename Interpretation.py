@@ -648,108 +648,7 @@ def app():
 
             
             return depth_filtered_df, top_depth, bot_depth
-        
-        
-        
-        def analyze_values(column):
-            need_calibration = False
-            have_anomaly = False
-            need_correction = False
-            for_ave_por= True 
-            have_null = False
-            no_error = True
-            
-            for value in depth_filtered_df[column]:
-                if value < 0 and not need_calibration:
-                    need_calibration = True
-                    no_error = False
-                    for_ave_por= False
-                
-                elif value > 1 and not have_anomaly:
-                    have_anomaly = True
-                    no_error = False
-                    for_ave_por= False
-                
-                elif 0.467 < value <= 1 and not need_correction:
-                    need_correction = True
-                    no_error = False
-                
-            null_value = depth_filtered_df[column].isnull().sum()
-            if null_value != 0:
-                have_null = True
-            
-            return { 
-                "need_calibration": need_calibration,
-                "have_anomaly": have_anomaly,
-                "need_correction": need_correction,
-                "no_error": no_error,
-                "have_null": have_null
-            }, no_error, for_ave_por
-            
-        def display_analysis_results(analysis_result):
-            no_error_message = ""
-            need_calibration_message = ""
-            have_anomaly_message = ""
-            need_correction_message = ""
-            have_null_message = ""
-            if analysis_result["no_error"]:
-                no_error_message = '''**Normal sonic porosity reading.**'''
-            
-            if analysis_result["have_null"]:
-                have_null_message = '''**Found null or missing values in porosity data.**'''
 
-            if analysis_result["need_calibration"]:
-                need_calibration_message = '''**Negative porosity value was found in the curve.**
-                This is unexpected for assumed matrix and fluid
-                and may be attributed to factors such as the use of the wrong matrix or cycle skipping.'''
-        
-            if analysis_result["have_anomaly"]:
-                have_anomaly_message = '''**Anomalies in the sonic porosity readings are detected, 
-                indicating the presence of more than one porosity value.** 
-                Possible contributing factors include cycle skipping, 
-                larger borehole conditions, or an air-filled borehole or mud affected by gas.'''
-        
-            if analysis_result["need_correction"]:
-                need_correction_message = '''**An overestimation of porosity is observed, 
-                indicating a need for correction.** 
-                Possible reasons for overestimation encompass uncompacted conditions, 
-                the presence of hydrocarbons, or a complex rock structure.'''
-            
-            result_message = f'''{no_error_message} {have_null_message} {need_calibration_message} {have_anomaly_message} {need_correction_message}'''
-
-            return result_message
-        
-        def weighted_average_porosity(column, no_error, for_ave_por, green_result):
-            #to make it thickness-weighted average porosity, replace 1 with the step (bottom depth - top depth)
-            sum_thickness_porosity = 0
-            avg_message = ""
-        
-            for value in depth_filtered_df[column]:
-                thickness_porosity = (1 * value)
-                sum_thickness_porosity += thickness_porosity
-        
-            weighted_average_porosity = sum_thickness_porosity / (1 * len(depth_filtered_df[column]))
-        
-            rounded_weighted_average_porosity = round(weighted_average_porosity, 4)
-            
-            if (no_error == True) & (green_result == 100):
-                avg_message = f'''The calculated Weighted Average Porosity is {rounded_weighted_average_porosity}.
-                '''
-                
-            elif no_error == False & for_ave_por == True:
-                avg_message = f'''The calculated Weighted Average Porosity is {rounded_weighted_average_porosity}.
-                Due to overestimated porosity, the weighted average porosity might not be reliable.
-                '''
-            elif math.isnan(rounded_weighted_average_porosity):
-                avg_message = '''The calculated weighted average porosity is marked as 'nan,' 
-                indicating a null/missing value from the specified range of depth.
-                '''
-                
-            else:
-                avg_message = '''Calculating Weighted Average Porosity is not applicable.'''
-
-            return rounded_weighted_average_porosity, avg_message
-        
         def analyze_porosity_values(column):
             orange = 0
             green = 0
@@ -795,9 +694,71 @@ def app():
             if nan != 0:
                 nan_msg = f"NaN Values: {nan_result:.4f}%"
         
-            return green_result, orange_msg, green_msg, yellow_msg, red_msg, nan_msg
-        
+            return orange_result, green_result, yellow_result, red_result, nan_result, orange_msg, green_msg, yellow_msg, red_msg, nan_msg
 
+        def weighted_average_porosity(column, orange_result, green_result, yellow_result, red_result, nan_result):
+            #to make it thickness-weighted average porosity, replace 1 with the step (bottom depth - top depth)
+            sum_thickness_porosity = 0
+            avg_message = ""
+        
+            for value in depth_filtered_df[column]:
+                thickness_porosity = (1 * value)
+                sum_thickness_porosity += thickness_porosity
+        
+            weighted_average_porosity = sum_thickness_porosity / (1 * len(depth_filtered_df[column]))
+        
+            rounded_weighted_average_porosity = round(weighted_average_porosity, 4)
+            
+            if green_result == 100:
+                avg_message = f'''The calculated Weighted Average Porosity is **{rounded_weighted_average_porosity}**.
+                '''
+            
+            elif math.isnan(rounded_weighted_average_porosity):
+                avg_message = '''The calculated weighted average porosity is marked as 'nan,' 
+                indicating a null/missing value from the specified range of depth.
+                '''
+                
+            elif yellow_result != 0 and orange_result == 0 and red_result == 0:
+                avg_message = f'''The calculated Weighted Average Porosity is **{rounded_weighted_average_porosity}**.
+                Due to overestimated porosity, the weighted average porosity might not be reliable.
+                '''
+
+            else:
+                avg_message = '''Calculating Weighted Average Porosity is not applicable.'''
+
+            return rounded_weighted_average_porosity, avg_message
+            
+        def display_analysis_results(orange_result, green_result, yellow_result, red_result, nan_result):
+            no_error_message = ""
+            need_calibration_message = ""
+            have_anomaly_message = ""
+            need_correction_message = ""
+            have_null_message = ""
+            if green_result == 100:
+                no_error_message = '''**Normal sonic porosity reading.** '''
+            
+            if nan_result != 0:
+                have_null_message = '''**Found null or missing values in porosity data.** '''
+
+            if orange_result != 0:
+                need_calibration_message = '''**Negative porosity value was found in the curve.**
+                This is unexpected for assumed matrix and fluid
+                and may be attributed to factors such as the use of the wrong matrix or cycle skipping. '''
+        
+            if red_result != 0:
+                have_anomaly_message = '''**Anomalies in the sonic porosity readings are detected, indicating the presence of more than one porosity value.** 
+                Possible contributing factors include cycle skipping, 
+                larger borehole conditions, or an air-filled borehole or mud affected by gas. '''
+        
+            if yellow_result != 0:
+                need_correction_message = ''' **An overestimation of porosity is observed, indicating a need for correction.** 
+                Possible reasons for overestimation encompass uncompacted conditions, 
+                the presence of hydrocarbons, or a complex rock structure. '''
+            
+            result_message = no_error_message + have_null_message + need_calibration_message + have_anomaly_message + need_correction_message
+
+            return result_message
+        
         #Main Flow for Formation Evaluation
         depth_filtered_df, top_depth, bot_depth = filter_depth(las_df_revised, start_depth, stop_depth)   
       
@@ -815,15 +776,12 @@ def app():
                 matrix = "Sandstone"
                 fluid = "Seawater"
                 column = 'Sandstone (Seawater)'
-                
-                analysis_result, no_error, for_ave_por = analyze_values(column)
-                result_message = display_analysis_results(analysis_result)
-                green_result, orange_msg, green_msg, yellow_msg, red_msg, nan_msg = analyze_porosity_values(column)
-                rounded_weighted_average_porosity, avg_message = weighted_average_porosity(column, no_error, for_ave_por, green_result)
-    
-                
+
+                orange_result, green_result, yellow_result, red_result, nan_result, orange_msg, green_msg, yellow_msg, red_msg, nan_msg = analyze_porosity_values(column)                
+                rounded_weighted_average_porosity, avg_message = weighted_average_porosity(column, orange_result, green_result, yellow_result, red_result, nan_result)
+                result_message = display_analysis_results(orange_result, green_result, yellow_result, red_result, nan_result)
+                st.divider()
                 st.markdown(f'''
-                            =====
                             \nAssuming the matrix was **{matrix}** and the fluid was **{fluid}**, 
                             the depth range of {top_depth} to {bot_depth} indicates the following findings:
                             \n- {avg_message}
@@ -847,14 +805,11 @@ def app():
                 fluid = "Seawater"
                 column = 'Limestone (Seawater)'
                 
-                analysis_result, no_error, for_ave_por = analyze_values(column)
-                result_message = display_analysis_results(analysis_result)
-                green_result, orange_msg, green_msg, yellow_msg, red_msg, nan_msg = analyze_porosity_values(column)
-                rounded_weighted_average_porosity, avg_message = weighted_average_porosity(column, no_error, for_ave_por, green_result)
-    
-                
+                orange_result, green_result, yellow_result, red_result, nan_result, orange_msg, green_msg, yellow_msg, red_msg, nan_msg = analyze_porosity_values(column)                
+                rounded_weighted_average_porosity, avg_message = weighted_average_porosity(column, orange_result, green_result, yellow_result, red_result, nan_result)
+                result_message = display_analysis_results(orange_result, green_result, yellow_result, red_result, nan_result)
+                st.divider()
                 st.markdown(f'''
-                            =====
                             \nAssuming the matrix was **{matrix}** and the fluid was **{fluid}**, 
                             the depth range of {top_depth} to {bot_depth} indicates the following findings:
                             \n- {avg_message}
@@ -874,14 +829,11 @@ def app():
                 fluid = "Seawater"
                 column = 'Dolomite (Seawater)'
                 
-                analysis_result, no_error, for_ave_por = analyze_values(column)
-                result_message = display_analysis_results(analysis_result)
-                green_result, orange_msg, green_msg, yellow_msg, red_msg, nan_msg = analyze_porosity_values(column)
-                rounded_weighted_average_porosity, avg_message = weighted_average_porosity(column, no_error, for_ave_por, green_result)
-    
-                
+                orange_result, green_result, yellow_result, red_result, nan_result, orange_msg, green_msg, yellow_msg, red_msg, nan_msg = analyze_porosity_values(column)                
+                rounded_weighted_average_porosity, avg_message = weighted_average_porosity(column, orange_result, green_result, yellow_result, red_result, nan_result)
+                result_message = display_analysis_results(orange_result, green_result, yellow_result, red_result, nan_result)
+                st.divider()
                 st.markdown(f'''
-                            =====
                             \nAssuming the matrix was **{matrix}** and the fluid was **{fluid}**, 
                             the depth range of {top_depth} to {bot_depth} indicates the following findings:
                             \n- {avg_message}
@@ -901,14 +853,11 @@ def app():
                 fluid = "Freshwater"
                 column = 'Sandstone (Freshwater)'
                 
-                analysis_result, no_error, for_ave_por = analyze_values(column)
-                result_message = display_analysis_results(analysis_result)
-                green_result, orange_msg, green_msg, yellow_msg, red_msg, nan_msg = analyze_porosity_values(column)
-                rounded_weighted_average_porosity, avg_message = weighted_average_porosity(column, no_error, for_ave_por, green_result)
-    
-                
+                orange_result, green_result, yellow_result, red_result, nan_result, orange_msg, green_msg, yellow_msg, red_msg, nan_msg = analyze_porosity_values(column)                
+                rounded_weighted_average_porosity, avg_message = weighted_average_porosity(column, orange_result, green_result, yellow_result, red_result, nan_result)
+                result_message = display_analysis_results(orange_result, green_result, yellow_result, red_result, nan_result)
+                st.divider()
                 st.markdown(f'''
-                            =====
                             \nAssuming the matrix was **{matrix}** and the fluid was **{fluid}**, 
                             the depth range of {top_depth} to {bot_depth} indicates the following findings:
                             \n- {avg_message}
@@ -927,14 +876,11 @@ def app():
                 fluid = "Freshwater"
                 column = 'Limestone (Freshwater)'
                 
-                analysis_result, no_error, for_ave_por = analyze_values(column)
-                result_message = display_analysis_results(analysis_result)
-                green_result, orange_msg, green_msg, yellow_msg, red_msg, nan_msg = analyze_porosity_values(column)
-                rounded_weighted_average_porosity, avg_message = weighted_average_porosity(column, no_error, for_ave_por, green_result)
-    
-                
+                orange_result, green_result, yellow_result, red_result, nan_result, orange_msg, green_msg, yellow_msg, red_msg, nan_msg = analyze_porosity_values(column)                
+                rounded_weighted_average_porosity, avg_message = weighted_average_porosity(column, orange_result, green_result, yellow_result, red_result, nan_result)
+                result_message = display_analysis_results(orange_result, green_result, yellow_result, red_result, nan_result)
+                st.divider()
                 st.markdown(f'''
-                            =====
                             \nAssuming the matrix was **{matrix}** and the fluid was **{fluid}**, 
                             the depth range of {top_depth} to {bot_depth} indicates the following findings:
                             \n- {avg_message}
@@ -954,14 +900,11 @@ def app():
                 fluid = "Freshwater"
                 column = 'Dolomite (Freshwater)'
                 
-                analysis_result, no_error, for_ave_por = analyze_values(column)
-                result_message = display_analysis_results(analysis_result)
-                green_result, orange_msg, green_msg, yellow_msg, red_msg, nan_msg = analyze_porosity_values(column)
-                rounded_weighted_average_porosity, avg_message = weighted_average_porosity(column, no_error, for_ave_por, green_result)
-    
-                
+                orange_result, green_result, yellow_result, red_result, nan_result, orange_msg, green_msg, yellow_msg, red_msg, nan_msg = analyze_porosity_values(column)                
+                rounded_weighted_average_porosity, avg_message = weighted_average_porosity(column, orange_result, green_result, yellow_result, red_result, nan_result)
+                result_message = display_analysis_results(orange_result, green_result, yellow_result, red_result, nan_result)
+                st.divider()
                 st.markdown(f'''
-                            =====
                             \nAssuming the matrix was **{matrix}** and the fluid was **{fluid}**, 
                             the depth range of {top_depth} to {bot_depth} indicates the following findings:
                             \n- {avg_message}
