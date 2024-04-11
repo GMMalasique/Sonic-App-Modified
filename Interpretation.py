@@ -14,12 +14,12 @@ def app():
     def create_option_menu():
         return option_menu(
             None,
-            options=["Las File Specification", "Well Information", "Curve Information", "Curve Data Overview", "Log Visualization"],
+            options=["Las File Specification", "Well Information", "Curve Information", "Curve Data Overview", "Sonic Porosity Calculation"],
             default_index=0,
             orientation="horizontal",
             styles={
                 "container": {"padding": "0!important", "background-color": "#fafafa"},
-                "nav-link": {"font-size": "13px", "text-align": "left", "margin": "0px", "--hover-color": "#eee"},
+                "nav-link": {"font-size": "11px", "text-align": "left", "margin": "0px", "--hover-color": "#eee"},
                 "nav-link-selected": {"background-color": "green"},
             }
         )
@@ -27,7 +27,7 @@ def app():
     def visualization_option_menu():
         return option_menu(
             None,
-            options=["Log Plot", "Depth vs Sonic Porosity", "Sonic Log vs Sonic Porosity", "Formation Evaluation"],
+            options=["Data Visualization", "Formation Evaluation"],
             default_index=0,
             orientation="horizontal",
             styles={
@@ -222,7 +222,7 @@ def app():
     if selected_tab == "Curve Data Overview":
         display_curve_data_overview()
     
-    if selected_tab == "Log Visualization":   
+    if selected_tab == "Sonic Porosity Calculation":   
         selected_column, correction_unit, unit_curve = visualize_curve_data(las_file, las_df)
         st.sidebar.subheader('Parameters:')
         if file:
@@ -311,7 +311,7 @@ def app():
             st.divider()
             selected_subtab = visualization_option_menu()
      
-    if selected_subtab == "Log Plot":  
+    if selected_subtab == "Data Visualization":  
         def track1_xaxis(fig, title):
             fig.update_xaxes(
                 title=title,
@@ -493,7 +493,7 @@ def app():
                 row=1, col=3
             ) 
     
-        
+        st.markdown("### Log Plot")
         st.plotly_chart(fig, use_container_width=True, theme=None)
         
 
@@ -508,11 +508,9 @@ def app():
                     | Green | 0 to 0.476 |
                     | Yellow | 0.476 to 1 |
                     | Red | More than 1 |
-                    
                     ''')
-    
-
-    if selected_subtab == "Depth vs Sonic Porosity":
+                    
+        #Depth vs Sonic Porosity
         # Initialize the figure
         fig = go.Figure()
     
@@ -551,10 +549,10 @@ def app():
         )
     
         # Display the plot
+        st.divider()
+        st.markdown('''### "Depth vs Sonic Porosity" Graph''')
         st.plotly_chart(fig, use_container_width=True, theme=None)
         
-        
-    if selected_subtab == "Sonic Log vs Sonic Porosity":
         # Initialize the figure
         fig = go.Figure()
     
@@ -593,6 +591,8 @@ def app():
         )
     
         # Display the plot
+        st.divider()
+        st.markdown('''### "Sonic Log vs Sonic Porosity" Graph''')
         st.plotly_chart(fig, use_container_width=True, theme=None)
         
     if selected_subtab == "Formation Evaluation":
@@ -999,33 +999,7 @@ def app():
                         | Red | More than 1 |
                         
                         ''')
-        st.divider()
-        st.info('''
-**What do you mean by scale in sonic porosity, and how does it work?**\n
 
-Essentially, the scale refers to the assumed lithology in calculating sonic porosity. 
-For instance, if limestone is the chosen scale, 
-the sonic porosity is true to the formations with lithology similar to limestone.
-                ''', icon="ℹ️")
-        st.info('''
-**How do we determine which scale to use for sonic porosity?**\n
-Determining the appropriate scale depends on the dominant lithology in the formation. 
-However, it is common to use limestone as the scale for sonic porosity, as using sandstone often results in negative sonic porosity. 
-Using limestone as equivalent porosity units is relatively straightforward compared to sandstone. 
-Limestone, mainly composed of calcite, contrasts with sandstone, 
-which consists of various minerals such as quartz, mica, feldspar, and others. 
-Understanding the mineralogy leads to more reliable porosity assessments.
-                ''', icon="ℹ️")
-                
-        st.info('''
-**How do we know if the calculated sonic porosity is reliable?**\n
-The sonic porosity was determined using the Wyllie time-average equation, 
-which assumes that the formation is well-compacted. 
-Shale content and mineralogy influence sonic porosity. 
-To obtain a more reliable porosity value, shale correction should be applied, 
-and knowledge of the formation's mineralogy is essential.
-                
-                ''', icon="ℹ️")
     
     
     

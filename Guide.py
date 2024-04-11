@@ -16,8 +16,7 @@ def app():
         '8': Image.open('Guide_8.png'),
         '9': Image.open('Guide_9.png'),
         '10': Image.open('Guide_10.png'),
-        '11': Image.open('Guide_11.png'),
-        
+        '11': Image.open('Guide_11.png')
     }
 
 
@@ -41,7 +40,7 @@ You have two options for providing LAS files to the Web Application:
 - Experience the features using a pre-loaded sample LAS file.
 ''')
 
-    st.image(img['2'], width=1000)
+    st.image(img['1'], width=1000)
 
     st.markdown('''
     ---                
@@ -52,7 +51,7 @@ You have two options for providing LAS files to the Web Application:
     ### 1. LAS File Specification
     Click on **LAS File Specification** in the navigation menu for detailed information about LAS file specifications.
     ''')
-    st.image(img['3'], width=1000)
+    st.image(img['2'], width=1000)
     
     
     st.markdown('''
@@ -60,26 +59,26 @@ You have two options for providing LAS files to the Web Application:
     ### 2. Well Information
     Click on **Well Information** in the navigation menu to access well-related details such as name, location, and metadata.
     ''')
-    st.image(img['4'], width=1000)
+    st.image(img['3'], width=1000)
     
     st.markdown('''
     ### 3. Curve Information
     Click on **Curve Information** in the navigation menu to view details about curves present in the LAS file.
     ''')
-    st.image(img['5'], width=1000)
+    st.image(img['4'], width=1000)
     
     st.markdown('''
     ### 4. Curve Data Overview
     Click on **Curve Data Overview** in the navigation menu for a summarized view of the dataset within the curves.
     ''')
-    st.image(img['6'], width=1000)
+    st.image(img['5'], width=1000)
     
     st.markdown('''
-    ### 5. Log Visualization
-    Click on **Log Visualization** in the navigation menu to visually analyze log data through interactive charts and graphs.
+    ### 5. Interpretation
+    Click on **Interpretation** in the navigation menu to calculate the sonic porosity, visually analyze log data through interactive charts and graphs and perform formation evaluation.
     
     
-    **Sonic Porosity Calculation:**
+    **Sonic Porosity Calculation**
     
     - Go to the selection of Curve Data.
     - Select "DT" (Sonic Log) curve.
@@ -89,35 +88,38 @@ You have two options for providing LAS files to the Web Application:
     
 
     ''')
+    st.image(img['6'], width=1000)
+    
+    st.markdown('''
+    ---
+    **Data Visualization**\n
+
+    The visualization is categorized into Log plots and Graphs. 
+    When the user clicks on the "Data Visualization" option, it presents the following:
+    - Sonic Log (Track 1) 
+    - Sonic Porosity (Track 2) 
+    - Interpretation (Track 3) 
+    - Depth vs Sonic Porosity Graph 
+    - Sonic Log vs Sonic Porosity Graph         
+    ''')
     st.image(img['7'], width=1000)
-    
-    st.markdown('''
-    ---
-    ### Data Visualization
-    The web application visualizes the data into the following:
-    
-    **Log Plot**
-    - Sonic Log (Track 1)
-    - Sonic Porosity (Track 2)
-    - Interpretation (Track 3)
-    ''')
     st.image(img['8'], width=1000)
-    
-    st.markdown('''
-    **Graphs**
-    - Depth vs Sonic Porosity Graph
-    ''')
-    st.image(img['10'], width=1000)
-    st.markdown('''
-    - Sonic Log vs Sonic Porosity Graph             
-    ''')
-    st.image(img['11'], width=1000)
+    st.image(img['9'], width=1000)
     
     
     st.markdown('''
     ---
-    ### Formation Evaluation
-    Under the Log Plot tab, the user can allow the web application to perform formation evaluation by clicking the formation evaluation checkbox.                
+    **Formation Evaluation**\n
+    
+    To initiate formation evaluation, the user can click on the "Formation Evaluation" tab next to the “Data Visualization” tab. 
+    Then, proceed to the selection of depth range by setting the values for both the top and bottom depths. 
+    Once completed, click "Evaluate." Additionally, the user has the option to "Reset" to evaluate the entire formation, 
+    including the original top and bottom depths.\n
+    
+    The formation evaluation process is divided into Porosity Classification, Weighted Average Porosity Calculation, 
+    and Sonic Porosity Interpretation. The results of the evaluation are presented in the findings section, 
+    showing the results for each evaluation process.
                     
                     ''')
-    st.image(img['9'], width=1000)
+    st.image(img['10'], width=1000)
+    st.image(img['11'], width=1000)
