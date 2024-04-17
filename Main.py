@@ -3,6 +3,9 @@ from streamlit_option_menu import option_menu
 import Home, About, Guide, Info, Interpretation
 
 
+
+
+
 st.set_page_config(
     page_title = "Sonic Log Web App",
     layout='wide'
