@@ -393,7 +393,9 @@ def app():
                 return depth_filtered_df, top_depth, bot_depth
             
             def interpolate_data(depth_filtered_df):
-                interpolated_df = depth_filtered_df.interpolate(method='linear')
+                
+                # Perform linear interpolation without extrapolation
+                interpolated_df = depth_filtered_df.apply(lambda col: col.interpolate(method='linear', limit_area='inside'))
                 
                 return interpolated_df
             
@@ -402,10 +404,10 @@ def app():
                 normal_val = 0
                 abnormal_val = 0
                 null_val = 0
-                null_val = depth_filtered_df[column].isnull().sum()
-                total_val = len(depth_filtered_df[column])
+                null_val = interpolated_df[column].isnull().sum()
+                total_val = len(interpolated_df[column])
             
-                for data in depth_filtered_df[column]:
+                for data in interpolated_df[column]:
                     if data < 0:
                         negative_val += 1
                     if 0 <= data <= 1:
@@ -425,7 +427,7 @@ def app():
     # Weighted Average Porosity            
                 sum_thickness_porosity = 0
                 
-                for value in depth_filtered_df[column]:
+                for value in interpolated_df[column]:
                     thickness_porosity = (1 * value)
                     sum_thickness_porosity += thickness_porosity
                 weighted_average_porosity = sum_thickness_porosity / (1 * len(depth_filtered_df[column]))
@@ -475,12 +477,8 @@ def app():
                 else:
                     st.markdown(f'''
                                 Missing values have been found. Null value percentage = {null_percentage: .4f}%\n
-                                Linear interpolation was applied to fill missing data in the evaluation.
                                 ''')
     
-    
-                
-                
                 st.markdown('''
                             =======================================================
                             ''')
